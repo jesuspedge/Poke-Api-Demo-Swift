@@ -10,10 +10,10 @@ import SDWebImageSwiftUI
 import Charts
 
 struct PokemonDetail: View {
-    let pokemon: Pokemon
-    
+    let pokemon: PokemonEntity
+
     @Environment(\.colorScheme) var colorScheme
-    
+
     var body: some View {
         ZStack(alignment: .topTrailing) {
             VStack {
@@ -23,62 +23,62 @@ struct PokemonDetail: View {
                     .frame(maxWidth: .infinity, maxHeight: 25, alignment: .leading)
                     .padding(.leading, 10)
                     .padding(.top, 20)
-                
+
                 HStack {
-                    Image(systemName: pokemonTypeIconDic[pokemon.types.first!.type.name] ?? "star.fill")
-                        .foregroundStyle(pokemonTypeColorDic[pokemon.types.first!.type.name] ?? .black)
-                    Text(pokemon.types.first!.type.name.capitalized)
+                    Image(systemName: pokemonTypeIconDic[pokemon.types.first!.name] ?? "star.fill")
+                        .foregroundStyle(pokemonTypeColorDic[pokemon.types.first!.name] ?? .black)
+                    Text(pokemon.types.first!.name.capitalized)
                 }
                 .frame(maxWidth: .infinity, maxHeight: 25, alignment: .leading)
                 .padding(.leading, 10)
                 .padding(.bottom, 20)
-                
-                
+
+
                 HStack(alignment: .top, spacing: 15) {
                     VStack {
                         Text("Height")
                             .bold()
-                            .foregroundStyle(pokemonTypeColorDic[pokemon.types.first!.type.name] ?? .black)
+                            .foregroundStyle(pokemonTypeColorDic[pokemon.types.first!.name] ?? .black)
                         Text("\(String(pokemon.height)) in.")
                     }
-                    
+
                     VStack {
                         Text("Weight")
                             .bold()
-                            .foregroundStyle(pokemonTypeColorDic[pokemon.types.first!.type.name] ?? .black)
+                            .foregroundStyle(pokemonTypeColorDic[pokemon.types.first!.name] ?? .black)
                         Text("\(String(pokemon.weight)) lbs.")
                     }
-                    
+
                     VStack {
                         Text("Category")
                             .bold()
-                            .foregroundStyle(pokemonTypeColorDic[pokemon.types.first!.type.name] ?? .black)
-                        
+                            .foregroundStyle(pokemonTypeColorDic[pokemon.types.first!.name] ?? .black)
+
                         ForEach(pokemon.types) { element in
-                            Text(element.type.name.capitalized)
+                            Text(element.name.capitalized)
                         }
                     }
-                    
+
                     VStack {
                         Text("Abilities")
                             .bold()
-                            .foregroundStyle(pokemonTypeColorDic[pokemon.types.first!.type.name] ?? .black)
-                        
+                            .foregroundStyle(pokemonTypeColorDic[pokemon.types.first!.name] ?? .black)
+
                         ForEach(pokemon.abilities) { element in
-                            Text(element.ability.name.capitalized)
+                            Text(element.name.capitalized)
                         }
                     }
                 }
                 .padding(.horizontal, 10)
-                
+
                 Chart {
                     ForEach(pokemon.stats) { element in
                         BarMark(
-                            x: .value("Stats", element.stat.name.capitalized),
+                            x: .value("Stats", element.name.capitalized),
                             y: .value("Value", element.baseStat),
                             width: 20
                         )
-                        .foregroundStyle(pokemonTypeColorDic[pokemon.types.first!.type.name] ?? .black)
+                        .foregroundStyle(pokemonTypeColorDic[pokemon.types.first!.name] ?? .black)
                     }
                 }
                 .chartXAxis() {
@@ -97,15 +97,15 @@ struct PokemonDetail: View {
                 .frame(maxHeight: 150)
                 .padding(.vertical, 15)
                 .padding(.horizontal, 10)
-                
-                
+
+
             }
             .background(colorScheme == .light ? Color.white : Color.gray.opacity(0.3))
             .cornerRadius(10)
             .shadow(radius: 5)
             .padding(.horizontal, 15)
-            
-            WebImage(url: URL(string: pokemon.sprites.other.officialArtwork.frontDefault))
+
+            WebImage(url: URL(string: pokemon.sprites.officialArtworkURL))
                 .resizable()
                 .frame(width: 150, height: 150)
                 .padding(.top, -60)
@@ -118,37 +118,27 @@ struct PokemonDetail: View {
 }
 
 #Preview {
-   
-    PokemonDetail(pokemon: Pokemon(
+    PokemonDetail(pokemon: PokemonEntity(
         id: 1,
         name: "bulbasaur",
         abilities: [
-            Ability(ability: AbilityClass(name: "overgrow")),
-            Ability(ability: AbilityClass(name: "chlorophyll")),
+            AbilityEntity(id: UUID(), name: "overgrow"),
+            AbilityEntity(id: UUID(), name: "chlorophyll"),
         ],
         height: 7,
-        sprites:
-            Sprites(
-                other: Other(
-                    officialArtwork: OfficialArtwork(
-                        frontDefault: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/1.png"))),
+        sprites: SpritesEntity(officialArtworkURL: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/1.png"),
         stats: [
-            Stat(baseStat: 45, stat: StatClass(name: "hp")),
-            Stat(baseStat: 49, stat: StatClass(name: "attack")),
-            Stat(baseStat: 49, stat: StatClass(name: "defense")),
-            Stat(baseStat: 65, stat: StatClass(name: "special-attack")),
-            Stat(baseStat: 65, stat: StatClass(name: "special-defense")),
-            Stat(baseStat: 45, stat: StatClass(name: "speed")),
+            StatEntity(id: UUID(), baseStat: 45, name: "hp"),
+            StatEntity(id: UUID(), baseStat: 49, name: "attack"),
+            StatEntity(id: UUID(), baseStat: 49, name: "defense"),
+            StatEntity(id: UUID(), baseStat: 65, name: "special-attack"),
+            StatEntity(id: UUID(), baseStat: 65, name: "special-defense"),
+            StatEntity(id: UUID(), baseStat: 45, name: "speed"),
         ],
         types: [
-        Types(
-            type: TypeClass(
-                name: "grass")),
-        Types(
-            type: TypeClass(
-                name: "poison"))
+            TypesEntity(id: UUID(), name: "grass"),
+            TypesEntity(id: UUID(), name: "poison")
         ],
         weight: 69)
     )
-
 }

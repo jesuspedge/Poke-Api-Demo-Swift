@@ -21,7 +21,7 @@ struct PokemonListView: View {
                 .onAppear {
                     Task {
                         do {
-                            pokemons = try await ApiNetwork().getPokemons()
+                            pokemons = try await PokemonRemoteSource().getPokemons()
                         } catch {
                             print("Error \(error)")
                             hasError = true

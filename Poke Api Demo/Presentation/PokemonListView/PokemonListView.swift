@@ -9,59 +9,51 @@ import SwiftUI
 import SDWebImageSwiftUI
 
 struct PokemonListView: View {
-    @State var loading: Bool = true
-    @State var hasError: Bool = false
-    @State var errorString: String = ""
-    @State var pokemons: [PokemonEntity] = []
+    @State private var viewModel = PokemonListViewModel()
 
     var body: some View {
+        NavigationStack {
+            Group {
+                switch viewModel.state {
+                case .initial:
+                    EmptyView()
 
-        if loading {
-            ProgressView()
-                .onAppear {
-                    Task {
-                        do {
-                            pokemons = try await PokemonRemoteSource().getPokemons()
-                        } catch {
-                            print("Error \(error)")
-                            hasError = true
-                            errorString = "Error: \(error)"
+                case .loading:
+                    ProgressView()
+
+                case .success(let pokemons):
+                    List(pokemons) { pokemon in
+                        ZStack {
+                            PokemonCard(pokemon: pokemon)
+                            NavigationLink(destination: PokemonDetail(pokemon: pokemon)) {
+                                EmptyView()
+                            }
+                            .opacity(0)
                         }
-                        loading = false
+                        .listRowSeparator(.hidden)
                     }
+                    .listStyle(.plain)
+
+                case .error(let message):
+                    VStack {
+                        Image(systemName: "exclamationmark.circle")
+                            .resizable()
+                            .frame(maxWidth: 50, maxHeight: 50)
+                            .padding(.bottom, 30)
+                        Text("Something went wrong")
+                            .font(.title2)
+                            .padding(.bottom, 10)
+                        Text(message)
+                    }
+                    .padding(.horizontal, 30)
                 }
-        } else if hasError {
-            VStack {
-                Image(systemName: "exclamationmark.circle")
-                    .resizable()
-                    .frame(maxWidth: 50, maxHeight: 50)
-                    .padding(.bottom, 30)
-
-                Text("Something goes wrong")
-                    .font(.title2)
-                    .padding(.bottom, 10)
-
-                Text(errorString)
             }
-            .padding(.horizontal, 30)
+            .navigationTitle("CHOOSE YOUR POKEMON")
+            .navigationBarTitleDisplayMode(.inline)
+            
         }
-        else {
-            NavigationStack {
-                List(pokemons) { pokemon in
-                    ZStack {
-                        PokemonCard(pokemon: pokemon)
-
-                        NavigationLink(destination: PokemonDetail(pokemon: pokemon)) {
-                            EmptyView()
-                        }
-                        .opacity(0)
-                    }
-                    .listRowSeparator(.hidden)
-                }
-                .listStyle(.plain)
-                .navigationTitle("CHOOSE YOUR POKEMON")
-                .navigationBarTitleDisplayMode(.inline)
-            }
+        .onAppear {
+            Task { await viewModel.fetchPokemons() }
         }
     }
 }

@@ -9,9 +9,11 @@ import SwiftUI
 
 @main
 struct Poke_Api_DemoApp: App {
+    @State private var viewModel = AppFactory.makeListViewModel()
+
     var body: some Scene {
         WindowGroup {
-            PokemonListView()
+            PokemonListView(viewModel: viewModel)
         }
     }
 }

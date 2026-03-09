@@ -14,7 +14,7 @@ final class PokemonListViewModel {
 
     private let repository: PokemonRepository
 
-    init(repository: PokemonRepository = PokemonRemoteSource()) {
+    init(repository: PokemonRepository) {
         self.repository = repository
     }
 

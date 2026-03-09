@@ -8,7 +8,11 @@
 import SwiftUI
 
 struct PokemonListView: View {
-    @State private var viewModel = PokemonListViewModel()
+    let viewModel: PokemonListViewModel
+    
+    init(viewModel: PokemonListViewModel) {
+        self.viewModel = viewModel
+    }
 
     var body: some View {
         NavigationStack {
@@ -58,5 +62,7 @@ struct PokemonListView: View {
 }
 
 #Preview {
-    PokemonListView()
+    PokemonListView(
+        viewModel: PokemonListViewModel(repository: MockPokemonRepository())
+    )
 }

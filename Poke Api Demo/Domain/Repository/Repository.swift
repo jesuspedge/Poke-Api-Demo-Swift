@@ -6,5 +6,10 @@
 //
 
 protocol PokemonRepository {
+    
+    // getAllPokemons
     func getPokemons() async -> Result<[PokemonEntity], AppError>
+    
+    // getSinglePokemon
+    func getPokemon(id: Int) async -> Result<PokemonEntity, AppError>
 }

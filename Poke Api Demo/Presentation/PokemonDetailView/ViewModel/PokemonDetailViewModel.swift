@@ -1,16 +1,16 @@
 //
-//  PokemonListViewModel.swift
+//  PokemonDetailViewModel.swift
 //  Poke Api Demo
 //
-//  Created by Roger Bacab on 04/03/26.
+//  Created by Roger Bacab on 09/03/26.
 //
 
 import Observation
 
 @Observable
 @MainActor
-final class PokemonListViewModel {
-    var state: PokemonListState = .initial
+final class PokemonDetailViewModel {
+    var state: PokemonDetailState = .initial
 
     private let repository: PokemonRepository
 
@@ -18,14 +18,14 @@ final class PokemonListViewModel {
         self.repository = repository
     }
 
-    func fetchPokemons() async {
+    func fetchPokemon(id: Int) async {
         state = .loading
         
-        let result = await repository.getPokemons()
+        let result = await repository.getPokemon(id: id)
         
         switch result {
-        case .success(let pokemons):
-            state = .success(pokemons)
+        case .success(let pokemon):
+            state = .success(pokemon)
         case .failure(let error):
             state = .error(error.localizedDescription)
         }

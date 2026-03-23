@@ -30,4 +30,22 @@ class PokemonRemoteSource: PokemonRepository {
             return .failure(.networkError(error.localizedDescription))
         }
     }
+    
+    func getPokemon(id: Int) async -> Result<PokemonEntity, AppError> {
+        do {
+            
+            let url = URL(string: "\(baseUrl)\(id)")!
+            let (data, _) = try await URLSession.shared.data(from: url)
+            let model = try JSONDecoder().decode(PokemonModel.self, from: data)
+            
+            let pokemon = mapper.toPokemonEntity(model)
+            
+            return .success(pokemon)
+            
+        } catch is DecodingError {
+            return .failure(.decodingError("Failed to decode Pokemon data"))
+        } catch {
+            return .failure(.networkError(error.localizedDescription))
+        }
+    }
 }

@@ -1,0 +1,29 @@
+{
+  "id": 2,
+  "name": "ivysaur",
+  "height": 10,
+  "weight": 130,
+  "abilities": [
+    { "ability": { "name": "overgrow" } },
+    { "ability": { "name": "chlorophyll" } }
+  ],
+  "sprites": {
+    "other": {
+      "official-artwork": {
+        "front_default": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/2.png"
+      }
+    }
+  },
+  "stats": [
+    { "base_stat": 60, "stat": { "name": "hp" } },
+    { "base_stat": 62, "stat": { "name": "attack" } },
+    { "base_stat": 63, "stat": { "name": "defense" } },
+    { "base_stat": 80, "stat": { "name": "special-attack" } },
+    { "base_stat": 80, "stat": { "name": "special-defense" } },
+    { "base_stat": 60, "stat": { "name": "speed" } }
+  ],
+  "types": [
+    { "type": { "name": "grass" } },
+    { "type": { "name": "poison" } }
+  ]
+}

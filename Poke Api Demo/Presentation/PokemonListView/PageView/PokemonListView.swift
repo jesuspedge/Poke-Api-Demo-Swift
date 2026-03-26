@@ -28,7 +28,7 @@ struct PokemonListView: View {
                     List(pokemons) { pokemon in
                         ZStack {
                             PokemonCard(pokemon: pokemon)
-                            NavigationLink(destination: PokemonDetail(pokemon: pokemon)) {
+                            NavigationLink(value: pokemon.id) {
                                 EmptyView()
                             }
                             .opacity(0)
@@ -53,7 +53,12 @@ struct PokemonListView: View {
             }
             .navigationTitle("CHOOSE YOUR POKEMON")
             .navigationBarTitleDisplayMode(.inline)
-            
+            .navigationDestination(for: Int.self) { pokemonId in
+                PokemonDetailView(
+                    viewModel: AppFactory.makeDetailViewModel(),
+                    pokemonId: pokemonId
+                )
+            }
         }
         .onAppear {
             Task { await viewModel.fetchPokemons() }

@@ -1,15 +1,15 @@
 //
-//  PokemonDetail.swift
+//  PokemonDetailCard.swift
 //  Poke Api Demo
 //
-//  Created by Roger Bacab on 15/08/24.
+//  Created by Roger Bacab on 23/03/26.
 //
 
 import SwiftUI
 import SDWebImageSwiftUI
 import Charts
 
-struct PokemonDetail: View {
+struct PokemonDetailCard: View {
     let pokemon: PokemonEntity
 
     @Environment(\.colorScheme) var colorScheme
@@ -114,31 +114,6 @@ struct PokemonDetail: View {
         }
         .padding(.top, 60)
         .padding(.bottom, 30)
-    }
-}
 
-#Preview {
-    PokemonDetail(pokemon: PokemonEntity(
-        id: 1,
-        name: "bulbasaur",
-        abilities: [
-            AbilityEntity(id: UUID(), name: "overgrow"),
-            AbilityEntity(id: UUID(), name: "chlorophyll"),
-        ],
-        height: 7,
-        sprites: SpritesEntity(officialArtworkURL: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/1.png"),
-        stats: [
-            StatEntity(id: UUID(), baseStat: 45, name: "hp"),
-            StatEntity(id: UUID(), baseStat: 49, name: "attack"),
-            StatEntity(id: UUID(), baseStat: 49, name: "defense"),
-            StatEntity(id: UUID(), baseStat: 65, name: "special-attack"),
-            StatEntity(id: UUID(), baseStat: 65, name: "special-defense"),
-            StatEntity(id: UUID(), baseStat: 45, name: "speed"),
-        ],
-        types: [
-            TypesEntity(id: UUID(), name: "grass"),
-            TypesEntity(id: UUID(), name: "poison")
-        ],
-        weight: 69)
-    )
+    }
 }

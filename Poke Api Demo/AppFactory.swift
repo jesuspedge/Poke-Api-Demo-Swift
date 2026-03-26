@@ -26,59 +26,43 @@ enum AppFactory {
 
 // MARK: - Mock (Debug / Preview only)
 #if DEBUG
-struct MockPokemonRepository: PokemonRepository {
-    func getPokemons() async -> Result<[PokemonEntity], AppError> {
-        .success([
-            PokemonEntity(
-                id: 1,
-                name: "bulbasaur",
-                abilities: [
-                    AbilityEntity(id: UUID(), name: "overgrow"),
-                    AbilityEntity(id: UUID(), name: "chlorophyll"),
-                ],
-                height: 7,
-                sprites: SpritesEntity(officialArtworkURL: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/1.png"),
-                stats: [
-                    StatEntity(id: UUID(), baseStat: 45, name: "hp"),
-                    StatEntity(id: UUID(), baseStat: 49, name: "attack"),
-                    StatEntity(id: UUID(), baseStat: 49, name: "defense"),
-                    StatEntity(id: UUID(), baseStat: 65, name: "special-attack"),
-                    StatEntity(id: UUID(), baseStat: 65, name: "special-defense"),
-                    StatEntity(id: UUID(), baseStat: 45, name: "speed"),
-                ],
-                types: [
-                    TypesEntity(id: UUID(), name: "grass"),
-                    TypesEntity(id: UUID(), name: "poison")
-                ],
-                weight: 69)
-        ])
+private extension Bundle {
+    func decode<T: Decodable>(_ type: T.Type, from filename: String) throws -> T {
+        guard let url = self.url(forResource: filename, withExtension: "json") else {
+            throw AppError.decodingError("Fixture file '\(filename).json' not found in bundle")
+        }
+        let data = try Data(contentsOf: url)
+        return try JSONDecoder().decode(T.self, from: data)
     }
-    
+}
+
+struct MockPokemonRepository: PokemonRepository {
+    private let mapper = PokemonMapper()
+    private let fixtureIDs = [1, 2, 3, 4, 5]
+
+    func getPokemons() async -> Result<[PokemonEntity], AppError> {
+        do {
+            let entities = try fixtureIDs.map {
+                let model = try Bundle.main.decode(PokemonModel.self, from: "pokemon_\($0)")
+                return mapper.toPokemonEntity(model)
+            }
+            return .success(entities)
+        } catch let error as AppError {
+            return .failure(error)
+        } catch {
+            return .failure(.decodingError(error.localizedDescription))
+        }
+    }
+
     func getPokemon(id: Int) async -> Result<PokemonEntity, AppError> {
-        .success(
-            PokemonEntity(
-                id: 1,
-                name: "bulbasaur",
-                abilities: [
-                    AbilityEntity(id: UUID(), name: "overgrow"),
-                    AbilityEntity(id: UUID(), name: "chlorophyll"),
-                ],
-                height: 7,
-                sprites: SpritesEntity(officialArtworkURL: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/1.png"),
-                stats: [
-                    StatEntity(id: UUID(), baseStat: 45, name: "hp"),
-                    StatEntity(id: UUID(), baseStat: 49, name: "attack"),
-                    StatEntity(id: UUID(), baseStat: 49, name: "defense"),
-                    StatEntity(id: UUID(), baseStat: 65, name: "special-attack"),
-                    StatEntity(id: UUID(), baseStat: 65, name: "special-defense"),
-                    StatEntity(id: UUID(), baseStat: 45, name: "speed"),
-                ],
-                types: [
-                    TypesEntity(id: UUID(), name: "grass"),
-                    TypesEntity(id: UUID(), name: "poison")
-                ],
-                weight: 69)
-        )
+        do {
+            let model = try Bundle.main.decode(PokemonModel.self, from: "pokemon_\(id)")
+            return .success(mapper.toPokemonEntity(model))
+        } catch let error as AppError {
+            return .failure(error)
+        } catch {
+            return .failure(.decodingError(error.localizedDescription))
+        }
     }
 }
 #endif

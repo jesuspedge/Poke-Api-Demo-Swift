@@ -1,0 +1,28 @@
+{
+  "id": 5,
+  "name": "charmeleon",
+  "height": 11,
+  "weight": 190,
+  "abilities": [
+    { "ability": { "name": "blaze" } },
+    { "ability": { "name": "solar-power" } }
+  ],
+  "sprites": {
+    "other": {
+      "official-artwork": {
+        "front_default": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/5.png"
+      }
+    }
+  },
+  "stats": [
+    { "base_stat": 58, "stat": { "name": "hp" } },
+    { "base_stat": 64, "stat": { "name": "attack" } },
+    { "base_stat": 58, "stat": { "name": "defense" } },
+    { "base_stat": 80, "stat": { "name": "special-attack" } },
+    { "base_stat": 65, "stat": { "name": "special-defense" } },
+    { "base_stat": 80, "stat": { "name": "speed" } }
+  ],
+  "types": [
+    { "type": { "name": "fire" } }
+  ]
+}

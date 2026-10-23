@@ -7,8 +7,8 @@
 
 protocol PokemonRepository: Sendable {
     
-    // getAllPokemons
-    func getPokemons() async -> Result<[PokemonEntity], AppError>
+    // getPokemonPage
+    func getPokemons(offset: Int, limit: Int) async -> Result<PokemonPage, AppError>
     
     // getSinglePokemon
     func getPokemon(id: Int) async -> Result<PokemonEntity, AppError>

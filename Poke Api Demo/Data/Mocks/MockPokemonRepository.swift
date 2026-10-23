@@ -16,13 +16,18 @@ struct MockPokemonRepository: PokemonRepository {
     private let mapper = PokemonMapper()
     private let fixtureIDs = [1, 2, 3, 4, 5]
 
-    func getPokemons() async -> Result<[PokemonEntity], AppError> {
+    func getPokemons(offset: Int, limit: Int) async -> Result<PokemonPage, AppError> {
         do {
-            let entities = try fixtureIDs.map {
+            let pageIDs = fixtureIDs.dropFirst(offset).prefix(limit)
+            let entities = try pageIDs.map {
                 let model = try Bundle.main.decode(PokemonModel.self, from: "pokemon_\($0)")
                 return mapper.toPokemonEntity(model)
             }
-            return .success(entities)
+            let nextOffset = offset + entities.count
+            return .success(PokemonPage(
+                pokemons: entities,
+                nextOffset: nextOffset < fixtureIDs.count ? nextOffset : nil
+            ))
         } catch let error as AppError {
             return .failure(error)
         } catch {

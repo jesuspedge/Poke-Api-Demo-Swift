@@ -13,21 +13,23 @@ struct StubHTTPClient: HTTPClient {
 }
 
 final class StubPokemonRepository: PokemonRepository {
-    private let listResult: OSAllocatedUnfairLock<Result<[PokemonEntity], AppError>>
+    private let listResult: OSAllocatedUnfairLock<Result<PokemonPage, AppError>>
     private let detailResult: OSAllocatedUnfairLock<Result<PokemonEntity, AppError>>
     private let calls = OSAllocatedUnfairLock(initialState: 0)
+    private let offsets = OSAllocatedUnfairLock(initialState: [Int]())
 
     var callCount: Int { calls.withLock { $0 } }
+    var requestedOffsets: [Int] { offsets.withLock { $0 } }
 
     init(
-        listResult: Result<[PokemonEntity], AppError> = .success([.fixture()]),
+        listResult: Result<PokemonPage, AppError> = .success(.fixture()),
         detailResult: Result<PokemonEntity, AppError> = .success(.fixture())
     ) {
         self.listResult = OSAllocatedUnfairLock(initialState: listResult)
         self.detailResult = OSAllocatedUnfairLock(initialState: detailResult)
     }
 
-    func setListResult(_ result: Result<[PokemonEntity], AppError>) {
+    func setListResult(_ result: Result<PokemonPage, AppError>) {
         listResult.withLock { $0 = result }
     }
 
@@ -35,14 +37,31 @@ final class StubPokemonRepository: PokemonRepository {
         detailResult.withLock { $0 = result }
     }
 
-    func getPokemons() async -> Result<[PokemonEntity], AppError> {
+    func getPokemons(offset: Int, limit: Int) async -> Result<PokemonPage, AppError> {
         calls.withLock { $0 += 1 }
+        offsets.withLock { $0.append(offset) }
         return listResult.withLock { $0 }
     }
 
     func getPokemon(id: Int) async -> Result<PokemonEntity, AppError> {
         calls.withLock { $0 += 1 }
         return detailResult.withLock { $0 }
+    }
+}
+
+final class RequestRecorder: Sendable {
+    private let urls = OSAllocatedUnfairLock(initialState: [URL]())
+
+    var all: [URL] { urls.withLock { $0 } }
+
+    func record(_ url: URL) {
+        urls.withLock { $0.append(url) }
+    }
+}
+
+extension PokemonPage {
+    static func fixture(ids: [Int] = [1], nextOffset: Int? = nil) -> PokemonPage {
+        PokemonPage(pokemons: ids.map { .fixture(id: $0, name: "pokemon-\($0)") }, nextOffset: nextOffset)
     }
 }
 
@@ -82,6 +101,14 @@ enum PokemonJSON {
         }
         """
         return Data(json.utf8)
+    }
+
+    static func page(ids: [Int], next: String? = nil) -> Data {
+        let results = ids
+            .map { "{\"name\": \"pokemon-\($0)\", \"url\": \"https://pokeapi.co/api/v2/pokemon/\($0)/\"}" }
+            .joined(separator: ",")
+        let nextJSON = next.map { "\"\($0)\"" } ?? "null"
+        return Data("{\"count\": 1302, \"next\": \(nextJSON), \"results\": [\(results)]}".utf8)
     }
 
     static func model(

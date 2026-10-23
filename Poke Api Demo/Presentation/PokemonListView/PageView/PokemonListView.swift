@@ -25,17 +25,31 @@ struct PokemonListView: View {
                     ProgressView()
 
                 case .success(let pokemons):
-                    List(pokemons) { pokemon in
-                        ZStack {
-                            PokemonCard(pokemon: pokemon)
-                            NavigationLink(value: pokemon.id) {
-                                EmptyView()
+                    List {
+                        ForEach(pokemons) { pokemon in
+                            ZStack {
+                                PokemonCard(pokemon: pokemon)
+                                NavigationLink(value: pokemon.id) {
+                                    EmptyView()
+                                }
+                                .opacity(0)
                             }
-                            .opacity(0)
+                            .listRowSeparator(.hidden)
                         }
-                        .listRowSeparator(.hidden)
+
+                        if viewModel.paging != .exhausted {
+                            PagingFooterView(state: viewModel.paging, onRetry: viewModel.loadNextPage)
+                                .listRowSeparator(.hidden)
+                                // Re-runs after each appended page in case the footer stays on screen.
+                                .task(id: pokemons.count) {
+                                    await viewModel.loadNextPage()
+                                }
+                        }
                     }
                     .listStyle(.plain)
+                    .refreshable {
+                        await viewModel.refresh()
+                    }
 
                 case .error(let message):
                     ErrorStateView(message: message, onRetry: viewModel.reload)
@@ -57,6 +71,6 @@ struct PokemonListView: View {
 
 #Preview {
     PokemonListView(
-        viewModel: PokemonListViewModel(repository: MockPokemonRepository())
+        viewModel: PokemonListViewModel(repository: MockPokemonRepository(), pageSize: 2)
     )
 }

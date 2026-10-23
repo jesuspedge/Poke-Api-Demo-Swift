@@ -46,26 +46,71 @@ struct PokemonRemoteSourceTests {
         }
     }
 
-    @Test func getPokemonsFetchesTwentyPokemonSortedById() async throws {
+    @Test func getPokemonsRequestsPageWithLimitAndOffset() async throws {
+        let recorder = RequestRecorder()
         let client = StubHTTPClient { url in
+            recorder.record(url)
+            return (PokemonJSON.page(ids: []), 200)
+        }
+        let source = PokemonRemoteSource(client: client)
+
+        _ = try await source.getPokemons(offset: 40, limit: 20).get()
+
+        #expect(recorder.all.map(\.absoluteString) == ["https://pokeapi.co/api/v2/pokemon?limit=20&offset=40"])
+    }
+
+    @Test func getPokemonsKeepsApiOrderAndComputesNextOffset() async throws {
+        let ids = [3, 1, 10001, 2]
+        let source = PokemonRemoteSource(client: Self.pagedClient(ids: ids, next: "https://pokeapi.co/api/v2/pokemon?offset=24&limit=4"))
+
+        let page = try await source.getPokemons(offset: 20, limit: 4).get()
+
+        #expect(page.pokemons.map(\.id) == ids)
+        #expect(page.nextOffset == 24)
+    }
+
+    @Test func getPokemonsLastPageHasNoNextOffset() async throws {
+        let source = PokemonRemoteSource(client: Self.pagedClient(ids: [1, 2], next: nil))
+
+        let page = try await source.getPokemons(offset: 0, limit: 20).get()
+
+        #expect(page.nextOffset == nil)
+        #expect(!page.hasMore)
+    }
+
+    @Test func getPokemonsFailsWhenAnyDetailRequestFails() async {
+        let client = StubHTTPClient { url in
+            if url.query != nil { return (PokemonJSON.page(ids: Array(1...10)), 200) }
+            return url.lastPathComponent == "7" ? (Data(), 500) : (PokemonJSON.make(), 200)
+        }
+        let source = PokemonRemoteSource(client: client)
+
+        let result = await source.getPokemons(offset: 0, limit: 10)
+
+        #expect(result == .failure(.httpStatus(500)))
+    }
+
+    @Test func getPokemonUsesCacheFilledByPage() async throws {
+        let recorder = RequestRecorder()
+        let source = PokemonRemoteSource(client: Self.pagedClient(ids: [1, 2], next: nil, recorder: recorder))
+
+        _ = try await source.getPokemons(offset: 0, limit: 2).get()
+        let requestsAfterPage = recorder.all.count
+        let pokemon = try await source.getPokemon(id: 2).get()
+
+        #expect(pokemon.id == 2)
+        #expect(recorder.all.count == requestsAfterPage)
+    }
+
+    // MARK: - Helpers
+    private static func pagedClient(ids: [Int], next: String?, recorder: RequestRecorder? = nil) -> StubHTTPClient {
+        StubHTTPClient { url in
+            recorder?.record(url)
+            if url.query != nil {
+                return (PokemonJSON.page(ids: ids, next: next), 200)
+            }
             let id = try #require(Int(url.lastPathComponent))
             return (PokemonJSON.make(id: id, name: "pokemon-\(id)"), 200)
         }
-        let source = PokemonRemoteSource(client: client)
-
-        let pokemons = try await source.getPokemons().get()
-
-        #expect(pokemons.map(\.id) == Array(1...20))
-    }
-
-    @Test func getPokemonsFailsWhenAnyRequestFails() async {
-        let client = StubHTTPClient { url in
-            url.lastPathComponent == "7" ? (Data(), 500) : (PokemonJSON.make(), 200)
-        }
-        let source = PokemonRemoteSource(client: client)
-
-        let result = await source.getPokemons()
-
-        #expect(result == .failure(.httpStatus(500)))
     }
 }

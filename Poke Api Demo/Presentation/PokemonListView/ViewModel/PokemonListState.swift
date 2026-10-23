@@ -5,7 +5,7 @@
 //  Created by Roger Bacab on 04/03/26.
 //
 
-enum PokemonListState {
+enum PokemonListState: Equatable {
     case initial
     case loading
     case success([PokemonEntity])

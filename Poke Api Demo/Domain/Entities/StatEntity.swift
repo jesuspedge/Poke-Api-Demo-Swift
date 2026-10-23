@@ -5,16 +5,9 @@
 //  Created by Roger Bacab on 03/03/26.
 //
 
-import Foundation
-
-class StatEntity: Identifiable {
-    let id: UUID
-    let baseStat: Int
+struct StatEntity: Identifiable, Hashable, Sendable {
     let name: String
+    let baseStat: Int
 
-    init(id: UUID, baseStat: Int, name: String) {
-        self.id = id
-        self.baseStat = baseStat
-        self.name = name
-    }
+    var id: String { name }
 }

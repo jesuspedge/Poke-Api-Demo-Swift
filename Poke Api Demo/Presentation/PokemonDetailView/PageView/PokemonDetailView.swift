@@ -8,12 +8,10 @@
 import SwiftUI
 
 struct PokemonDetailView: View {
-    let viewModel: PokemonDetailViewModel
-    let pokemonId: Int
+    @State private var viewModel: PokemonDetailViewModel
     
-    init(viewModel: PokemonDetailViewModel, pokemonId: Int) {
-        self.viewModel = viewModel
-        self.pokemonId = pokemonId
+    init(viewModel: PokemonDetailViewModel) {
+        _viewModel = State(initialValue: viewModel)
     }
 
     var body: some View {
@@ -26,28 +24,22 @@ struct PokemonDetailView: View {
                 ProgressView()
 
             case .success(let pokemon):
-                PokemonDetailCard(pokemon: pokemon)
+                ScrollView {
+                    PokemonDetailCard(pokemon: pokemon)
+                }
 
             case .error(let message):
-                VStack {
-                    Image(systemName: "exclamationmark.circle")
-                        .resizable()
-                        .frame(maxWidth: 50, maxHeight: 50)
-                        .padding(.bottom, 30)
-                    Text("Something went wrong")
-                        .font(.title2)
-                        .padding(.bottom, 10)
-                    Text(message)
-                }
-                .padding(.horizontal, 30)
+                ErrorStateView(message: message, onRetry: viewModel.reload)
             }
         }
-        .onAppear {
-            Task { await viewModel.fetchPokemon(id: pokemonId) }
+        .task {
+            await viewModel.loadIfNeeded()
         }
     }
 }
 
 #Preview {
-    PokemonDetailView(viewModel: AppFactory.makeDetailViewModel(), pokemonId: 1)
+    PokemonDetailView(
+        viewModel: PokemonDetailViewModel(pokemonId: 1, repository: MockPokemonRepository())
+    )
 }

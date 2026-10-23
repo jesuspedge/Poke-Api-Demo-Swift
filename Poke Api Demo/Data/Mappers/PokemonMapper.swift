@@ -12,12 +12,12 @@ struct PokemonMapper {
         PokemonEntity(
             id: model.id,
             name: model.name,
-            abilities: model.abilities.map { AbilityEntity(id: UUID(), name: $0.ability.name) },
-            height: model.height,
-            sprites: SpritesEntity(officialArtworkURL: model.sprites.other.officialArtwork.frontDefault),
-            stats: model.stats.map { StatEntity(id: UUID(), baseStat: $0.baseStat, name: $0.stat.name) },
-            types: model.types.map { TypesEntity(id: UUID(), name: $0.type.name) },
-            weight: model.weight
+            abilities: model.abilities.map { AbilityEntity(name: $0.ability.name) },
+            heightInMeters: Double(model.height) / 10,
+            weightInKg: Double(model.weight) / 10,
+            artworkURL: model.sprites.other.officialArtwork.frontDefault.flatMap(URL.init(string:)),
+            stats: model.stats.map { StatEntity(name: $0.stat.name, baseStat: $0.baseStat) },
+            types: model.types.compactMap { PokemonType(rawValue: $0.type.name) }
         )
     }
 }

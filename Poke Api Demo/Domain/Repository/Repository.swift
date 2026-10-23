@@ -5,7 +5,7 @@
 //  Created by Roger Bacab on 04/03/26.
 //
 
-protocol PokemonRepository {
+protocol PokemonRepository: Sendable {
     
     // getAllPokemons
     func getPokemons() async -> Result<[PokemonEntity], AppError>

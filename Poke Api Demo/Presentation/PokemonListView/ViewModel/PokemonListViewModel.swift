@@ -18,11 +18,22 @@ final class PokemonListViewModel {
         self.repository = repository
     }
 
-    func fetchPokemons() async {
+    func loadIfNeeded() async {
+        guard state == .initial else { return }
+        await reload()
+    }
+
+    func reload() async {
         state = .loading
         
         let result = await repository.getPokemons()
-        
+
+        // A cancelled .task resets the state so the next appearance loads again.
+        guard !Task.isCancelled else {
+            state = .initial
+            return
+        }
+
         switch result {
         case .success(let pokemons):
             state = .success(pokemons)

@@ -7,45 +7,72 @@
 
 import Foundation
 
-class PokemonRemoteSource: PokemonRepository {
+struct PokemonRemoteSource: PokemonRepository {
     private let baseUrl = "https://pokeapi.co/api/v2/pokemon/"
+    private let pokemonIDs = 1...20
     private let mapper = PokemonMapper()
+    private let client: HTTPClient
+    private let decoder: JSONDecoder
+
+    init(client: HTTPClient = URLSessionHTTPClient(), decoder: JSONDecoder = JSONDecoder()) {
+        self.client = client
+        self.decoder = decoder
+    }
 
     func getPokemons() async -> Result<[PokemonEntity], AppError> {
         do {
-            
-            var pokemons: [PokemonEntity] = []
-            for number in 1...20 {
-                let url = URL(string: "\(baseUrl)\(number)")!
-                let (data, _) = try await URLSession.shared.data(from: url)
-                let model = try JSONDecoder().decode(PokemonModel.self, from: data)
-                pokemons.append(mapper.toPokemonEntity(model))
+            let pokemons = try await withThrowingTaskGroup(of: PokemonEntity.self) { group in
+                for id in pokemonIDs {
+                    group.addTask { try await fetchPokemon(id: id) }
+                }
+
+                var pokemons: [PokemonEntity] = []
+                for try await pokemon in group {
+                    pokemons.append(pokemon)
+                }
+                return pokemons.sorted { $0.id < $1.id }
             }
-            
+
             return .success(pokemons)
-            
-        } catch is DecodingError {
-            return .failure(.decodingError("Failed to decode Pokemon data"))
+
         } catch {
-            return .failure(.networkError(error.localizedDescription))
+            return .failure(mapError(error))
         }
     }
-    
+
     func getPokemon(id: Int) async -> Result<PokemonEntity, AppError> {
         do {
-            
-            let url = URL(string: "\(baseUrl)\(id)")!
-            let (data, _) = try await URLSession.shared.data(from: url)
-            let model = try JSONDecoder().decode(PokemonModel.self, from: data)
-            
-            let pokemon = mapper.toPokemonEntity(model)
-            
-            return .success(pokemon)
-            
-        } catch is DecodingError {
-            return .failure(.decodingError("Failed to decode Pokemon data"))
+            return .success(try await fetchPokemon(id: id))
         } catch {
-            return .failure(.networkError(error.localizedDescription))
+            return .failure(mapError(error))
+        }
+    }
+
+    // MARK: - Helpers
+    private func fetchPokemon(id: Int) async throws -> PokemonEntity {
+        guard let url = URL(string: "\(baseUrl)\(id)") else {
+            throw AppError.invalidURL
+        }
+
+        let (data, response) = try await client.data(from: url)
+
+        if let httpResponse = response as? HTTPURLResponse,
+           !(200..<300).contains(httpResponse.statusCode) {
+            throw AppError.httpStatus(httpResponse.statusCode)
+        }
+
+        let model = try decoder.decode(PokemonModel.self, from: data)
+        return mapper.toPokemonEntity(model)
+    }
+
+    private func mapError(_ error: Error) -> AppError {
+        switch error {
+        case let appError as AppError:
+            appError
+        case is DecodingError:
+            .decodingError("Failed to decode Pokemon data")
+        default:
+            .networkError(error.localizedDescription)
         }
     }
 }

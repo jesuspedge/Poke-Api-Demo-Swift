@@ -11,37 +11,32 @@ import SDWebImageSwiftUI
 struct PokemonCard: View {
     let pokemon: PokemonEntity
 
-    @Environment(\.colorScheme) var colorScheme
-
     var body: some View {
         HStack {
-            VStack {
+            VStack(alignment: .leading, spacing: 8) {
                 Text(pokemon.name.capitalized)
                     .font(.title)
-                    .foregroundStyle(pokemonTypeColorDic[pokemon.types.first!.name] ?? .black)
-                    .frame(maxWidth: .infinity, maxHeight: 25, alignment: .leading)
-
+                    .foregroundStyle(pokemon.primaryType.color)
 
                 HStack {
-                    Image(systemName: pokemonTypeIconDic[pokemon.types.first!.name] ?? "star.fill")
-                        .foregroundStyle(pokemonTypeColorDic[pokemon.types.first!.name] ?? .black)
-                    Text(pokemon.types.first!.name.capitalized)
+                    Image(systemName: pokemon.primaryType.icon)
+                        .foregroundStyle(pokemon.primaryType.color)
+                    Text(pokemon.primaryType.displayName)
                 }
-                .frame(maxWidth: .infinity, maxHeight: 25, alignment: .leading)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.leading, 15)
 
-            WebImage(url: URL(string: pokemon.sprites.officialArtworkURL))
+            WebImage(url: pokemon.artworkURL)
                 .resizable()
-                .frame(width: 170, height: 170)
-                .padding(.top, 30)
-                .padding(.leading, -10)
-
+                .scaledToFit()
+                .frame(width: 150, height: 150)
+                .accessibilityHidden(true)
         }
-        .frame(maxWidth: .infinity,  maxHeight: 150)
-        .background(colorScheme == .light ? Color.white : Color.gray.opacity(0.3))
-        .cornerRadius(10)
+        .frame(maxWidth: .infinity, minHeight: 150)
+        .background(Color(.secondarySystemBackground))
+        .clipShape(.rect(cornerRadius: 10))
         .shadow(radius: 5)
-
+        .accessibilityElement(children: .combine)
     }
 }

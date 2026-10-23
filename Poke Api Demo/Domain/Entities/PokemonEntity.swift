@@ -7,31 +7,15 @@
 
 import Foundation
 
-class PokemonEntity: Identifiable {
+struct PokemonEntity: Identifiable, Hashable, Sendable {
     let id: Int
     let name: String
     let abilities: [AbilityEntity]
-    let height: Int
-    let sprites: SpritesEntity
+    let heightInMeters: Double
+    let weightInKg: Double
+    let artworkURL: URL?
     let stats: [StatEntity]
-    let types: [TypesEntity]
-    let weight: Int
+    let types: [PokemonType]
 
-    init(id: Int,
-         name: String,
-         abilities: [AbilityEntity],
-         height: Int,
-         sprites: SpritesEntity,
-         stats: [StatEntity],
-         types: [TypesEntity],
-         weight: Int) {
-        self.id = id
-        self.name = name
-        self.abilities = abilities
-        self.height = height
-        self.sprites = sprites
-        self.stats = stats
-        self.types = types
-        self.weight = weight
-    }
+    var primaryType: PokemonType { types.first ?? .normal }
 }

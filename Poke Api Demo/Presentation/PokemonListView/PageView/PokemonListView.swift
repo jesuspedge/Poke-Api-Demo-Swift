@@ -8,10 +8,10 @@
 import SwiftUI
 
 struct PokemonListView: View {
-    let viewModel: PokemonListViewModel
+    @State private var viewModel: PokemonListViewModel
     
     init(viewModel: PokemonListViewModel) {
-        self.viewModel = viewModel
+        _viewModel = State(initialValue: viewModel)
     }
 
     var body: some View {
@@ -38,30 +38,19 @@ struct PokemonListView: View {
                     .listStyle(.plain)
 
                 case .error(let message):
-                    VStack {
-                        Image(systemName: "exclamationmark.circle")
-                            .resizable()
-                            .frame(maxWidth: 50, maxHeight: 50)
-                            .padding(.bottom, 30)
-                        Text("Something went wrong")
-                            .font(.title2)
-                            .padding(.bottom, 10)
-                        Text(message)
-                    }
-                    .padding(.horizontal, 30)
+                    ErrorStateView(message: message, onRetry: viewModel.reload)
                 }
             }
             .navigationTitle("CHOOSE YOUR POKEMON")
             .navigationBarTitleDisplayMode(.inline)
             .navigationDestination(for: Int.self) { pokemonId in
                 PokemonDetailView(
-                    viewModel: AppFactory.makeDetailViewModel(),
-                    pokemonId: pokemonId
+                    viewModel: AppFactory.makeDetailViewModel(pokemonId: pokemonId)
                 )
             }
         }
-        .onAppear {
-            Task { await viewModel.fetchPokemons() }
+        .task {
+            await viewModel.loadIfNeeded()
         }
     }
 }

@@ -13,6 +13,7 @@ final class PokemonListViewModel {
     var state: PokemonListState = .initial
     var filter = PokemonListFilter()
     private(set) var paging: PagingState = .idle
+    private(set) var isOffline = false
 
     // Browsing pages through the server list; a search pages through its matches locally.
     private enum Source {
@@ -127,6 +128,7 @@ final class PokemonListViewModel {
             state = .success(current + page.pokemons.filter { !knownIDs.contains($0.id) })
             nextOffset = page.nextOffset
             paging = page.hasMore ? .idle : .exhausted
+            isOffline = page.isOffline
         case .failure(let error):
             paging = .failed(error.localizedDescription)
         }
@@ -171,5 +173,6 @@ final class PokemonListViewModel {
         state = .success(page.pokemons)
         nextOffset = page.nextOffset
         paging = page.hasMore ? .idle : .exhausted
+        isOffline = page.isOffline
     }
 }

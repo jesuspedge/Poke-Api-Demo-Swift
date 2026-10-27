@@ -35,7 +35,11 @@ struct PokemonRemoteSource: PokemonRepository {
             return .success(PokemonPage(pokemons: pokemons, nextOffset: nextOffset))
 
         } catch {
-            return .failure(mapError(error))
+            let appError = mapError(error)
+            if case .networkError = appError, let savedPage = await savedPage(offset: offset, limit: limit) {
+                return .success(savedPage)
+            }
+            return .failure(appError)
         }
     }
 
@@ -91,6 +95,17 @@ struct PokemonRemoteSource: PokemonRepository {
     }
 
     // MARK: - Helpers
+    // Offline fallback: pages through the Pokémon saved on this device.
+    private func savedPage(offset: Int, limit: Int) async -> PokemonPage? {
+        let saved = await cache.pokemons(offset: offset, limit: limit)
+        guard !saved.isEmpty else { return nil }
+        return PokemonPage(
+            pokemons: saved,
+            nextOffset: saved.count == limit ? offset + limit : nil,
+            isOffline: true
+        )
+    }
+
     private func fetchPokemons(ids: [Int]) async throws -> [PokemonEntity] {
         try await withThrowingTaskGroup(of: (Int, PokemonEntity).self) { group in
             for (index, id) in ids.enumerated() {

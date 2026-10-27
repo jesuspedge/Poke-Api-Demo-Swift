@@ -11,7 +11,7 @@ import SwiftUI
 struct Poke_Api_DemoApp: App {
     var body: some Scene {
         WindowGroup {
-            PokemonListView(viewModel: AppFactory.makeListViewModel())
+            RootTabView()
         }
     }
 }

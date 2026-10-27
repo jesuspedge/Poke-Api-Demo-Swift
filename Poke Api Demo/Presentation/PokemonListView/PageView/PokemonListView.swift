@@ -18,8 +18,13 @@ struct PokemonListView: View {
         NavigationStack {
             content
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .safeAreaInset(edge: .top) {
-                    TypeFilterBar(selection: $viewModel.filter.type)
+                .safeAreaInset(edge: .top, spacing: 0) {
+                    VStack(spacing: 0) {
+                        TypeFilterBar(selection: $viewModel.filter.type)
+                        if viewModel.isOffline {
+                            OfflineBanner()
+                        }
+                    }
                 }
                 .searchable(text: $viewModel.filter.query, prompt: "Search by name or number")
                 .navigationTitle("CHOOSE YOUR POKEMON")
@@ -38,10 +43,7 @@ struct PokemonListView: View {
     @ViewBuilder
     private var content: some View {
         switch viewModel.state {
-        case .initial:
-            EmptyView()
-
-        case .loading:
+        case .initial, .loading:
             ProgressView()
 
         case .success(let pokemons) where pokemons.isEmpty && viewModel.filter.isActive:
@@ -50,14 +52,7 @@ struct PokemonListView: View {
         case .success(let pokemons):
             List {
                 ForEach(pokemons) { pokemon in
-                    ZStack {
-                        PokemonCard(pokemon: pokemon)
-                        NavigationLink(value: pokemon.id) {
-                            EmptyView()
-                        }
-                        .opacity(0)
-                    }
-                    .listRowSeparator(.hidden)
+                    PokemonNavigationRow(pokemon: pokemon)
                 }
 
                 if viewModel.paging != .exhausted {

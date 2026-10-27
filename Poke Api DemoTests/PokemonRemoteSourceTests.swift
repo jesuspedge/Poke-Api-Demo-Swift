@@ -144,6 +144,51 @@ struct PokemonRemoteSourceTests {
         #expect(result == .failure(.httpStatus(404)))
     }
 
+    // MARK: - Offline fallback
+    @Test func unreachableNetworkFallsBackToSavedPokemon() async throws {
+        let cache = InMemoryPokemonCache()
+        await cache.store([25, 1, 4].map { PokemonEntity.fixture(id: $0) })
+        let client = StubHTTPClient { _ in throw URLError(.notConnectedToInternet) }
+        let source = PokemonRemoteSource(client: client, cache: cache)
+
+        let page = try await source.getPokemons(offset: 0, limit: 2).get()
+
+        #expect(page.isOffline)
+        #expect(page.pokemons.map(\.id) == [1, 4])
+        #expect(page.nextOffset == 2)
+    }
+
+    @Test func offlineLastSavedPageHasNoNextOffset() async throws {
+        let cache = InMemoryPokemonCache()
+        await cache.store([.fixture(id: 1)])
+        let source = PokemonRemoteSource(client: StubHTTPClient { _ in throw URLError(.timedOut) }, cache: cache)
+
+        let page = try await source.getPokemons(offset: 0, limit: 20).get()
+
+        #expect(page.nextOffset == nil)
+    }
+
+    @Test func unreachableNetworkWithNothingSavedFails() async {
+        let source = PokemonRemoteSource(client: StubHTTPClient { _ in throw URLError(.notConnectedToInternet) })
+
+        let result = await source.getPokemons(offset: 0, limit: 20)
+
+        guard case .failure(.networkError) = result else {
+            Issue.record("Expected networkError, got \(result)")
+            return
+        }
+    }
+
+    @Test func serverErrorDoesNotFallBack() async {
+        let cache = InMemoryPokemonCache()
+        await cache.store([.fixture(id: 1)])
+        let source = PokemonRemoteSource(client: StubHTTPClient { _ in (Data(), 500) }, cache: cache)
+
+        let result = await source.getPokemons(offset: 0, limit: 20)
+
+        #expect(result == .failure(.httpStatus(500)))
+    }
+
     // MARK: - Helpers
     private static func pagedClient(ids: [Int], next: String?, recorder: RequestRecorder? = nil) -> StubHTTPClient {
         StubHTTPClient { url in

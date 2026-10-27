@@ -8,6 +8,7 @@ struct AppErrorTests {
         .httpStatus(500),
         .decodingError("bad json"),
         .invalidURL,
+        .persistence("disk full"),
         .unknown,
     ])
     func localizedDescriptionUsesCustomMessage(error: AppError) {

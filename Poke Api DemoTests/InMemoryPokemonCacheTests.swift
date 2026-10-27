@@ -36,4 +36,12 @@ struct InMemoryPokemonCacheTests {
         #expect(await cache.pokemonIDs(ofType: .fire) == [4, 5])
         #expect(await cache.pokemonIDs(ofType: .water) == nil)
     }
+
+    @Test func savedPokemonArePagedInIdOrder() async {
+        let cache = InMemoryPokemonCache()
+        await cache.store([25, 1, 4].map { PokemonEntity.fixture(id: $0) })
+
+        #expect(await cache.pokemons(offset: 0, limit: 2).map(\.id) == [1, 4])
+        #expect(await cache.pokemons(offset: 2, limit: 2).map(\.id) == [25])
+    }
 }

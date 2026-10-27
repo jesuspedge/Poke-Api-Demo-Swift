@@ -1,6 +1,8 @@
 protocol PokemonCache: Sendable {
     func pokemon(id: Int) async -> PokemonEntity?
     func store(_ pokemons: [PokemonEntity]) async
+    // Saved Pokémon sorted by id, for browsing while offline.
+    func pokemons(offset: Int, limit: Int) async -> [PokemonEntity]
 
     func index() async -> [PokemonSummary]?
     func storeIndex(_ index: [PokemonSummary]) async
@@ -22,6 +24,10 @@ actor InMemoryPokemonCache: PokemonCache {
         for pokemon in pokemons {
             storage[pokemon.id] = pokemon
         }
+    }
+
+    func pokemons(offset: Int, limit: Int) -> [PokemonEntity] {
+        Array(storage.values.sorted { $0.id < $1.id }.dropFirst(offset).prefix(limit))
     }
 
     func index() -> [PokemonSummary]? {

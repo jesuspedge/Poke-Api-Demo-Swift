@@ -95,6 +95,51 @@ extension [PokemonSummary] {
     }
 }
 
+final class StubFavoritesRepository: FavoritesRepository {
+    private let stored: OSAllocatedUnfairLock<[PokemonEntity]>
+    private let saveError = OSAllocatedUnfairLock<AppError?>(initialState: nil)
+    private let readError = OSAllocatedUnfairLock<AppError?>(initialState: nil)
+    private let saves = OSAllocatedUnfairLock(initialState: [(Int, Bool)]())
+
+    var savedChanges: [(id: Int, isFavorite: Bool)] { saves.withLock { $0.map { (id: $0.0, isFavorite: $0.1) } } }
+    var ids: [Int] { stored.withLock { $0.map(\.id) } }
+
+    init(favorites: [PokemonEntity] = []) {
+        stored = OSAllocatedUnfairLock(initialState: favorites)
+    }
+
+    func setSaveError(_ error: AppError?) {
+        saveError.withLock { $0 = error }
+    }
+
+    func setReadError(_ error: AppError?) {
+        readError.withLock { $0 = error }
+    }
+
+    func favorites() async -> Result<[PokemonEntity], AppError> {
+        if let error = readError.withLock({ $0 }) {
+            return .failure(error)
+        }
+        return .success(stored.withLock { $0 })
+    }
+
+    func isFavorite(id: Int) async -> Bool {
+        stored.withLock { $0.contains { $0.id == id } }
+    }
+
+    func setFavorite(_ isFavorite: Bool, for pokemon: PokemonEntity) async -> Result<Void, AppError> {
+        if let error = saveError.withLock({ $0 }) {
+            return .failure(error)
+        }
+        saves.withLock { $0.append((pokemon.id, isFavorite)) }
+        stored.withLock { favorites in
+            favorites.removeAll { $0.id == pokemon.id }
+            if isFavorite { favorites.insert(pokemon, at: 0) }
+        }
+        return .success(())
+    }
+}
+
 final class RequestRecorder: Sendable {
     private let urls = OSAllocatedUnfairLock(initialState: [URL]())
 

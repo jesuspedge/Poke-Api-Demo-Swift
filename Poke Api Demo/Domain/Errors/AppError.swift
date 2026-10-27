@@ -12,6 +12,7 @@ enum AppError: Error, Equatable, LocalizedError {
     case httpStatus(Int)
     case decodingError(String)
     case invalidURL
+    case persistence(String)
     case unknown
 
     var errorDescription: String? {
@@ -24,6 +25,8 @@ enum AppError: Error, Equatable, LocalizedError {
             String(localized: "We received data we couldn't read.")
         case .invalidURL:
             String(localized: "The request address is invalid.")
+        case .persistence:
+            String(localized: "We couldn't save your changes.")
         case .unknown:
             String(localized: "An unknown error occurred.")
         }

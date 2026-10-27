@@ -9,7 +9,7 @@ import SwiftUI
 
 struct PokemonDetailView: View {
     @State private var viewModel: PokemonDetailViewModel
-    
+
     init(viewModel: PokemonDetailViewModel) {
         _viewModel = State(initialValue: viewModel)
     }
@@ -17,10 +17,8 @@ struct PokemonDetailView: View {
     var body: some View {
         Group {
             switch viewModel.state {
-            case .initial:
-                EmptyView()
-                
-            case .loading:
+            // .initial must render a real view: .task on an EmptyView never fires.
+            case .initial, .loading:
                 ProgressView()
 
             case .success(let pokemon):
@@ -32,6 +30,27 @@ struct PokemonDetailView: View {
                 ErrorStateView(message: message, onRetry: viewModel.reload)
             }
         }
+        .toolbar {
+            if case .success = viewModel.state {
+                Button {
+                    Task { await viewModel.toggleFavorite() }
+                } label: {
+                    Image(systemName: viewModel.isFavorite ? "heart.fill" : "heart")
+                }
+                .accessibilityLabel(viewModel.isFavorite ? "Remove from favorites" : "Add to favorites")
+            }
+        }
+        .alert(
+            "Couldn't Update Favorites",
+            isPresented: Binding(
+                get: { viewModel.favoriteErrorMessage != nil },
+                set: { if !$0 { viewModel.favoriteErrorMessage = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(viewModel.favoriteErrorMessage ?? "")
+        }
         .task {
             await viewModel.loadIfNeeded()
         }
@@ -39,7 +58,13 @@ struct PokemonDetailView: View {
 }
 
 #Preview {
-    PokemonDetailView(
-        viewModel: PokemonDetailViewModel(pokemonId: 1, repository: MockPokemonRepository())
-    )
+    NavigationStack {
+        PokemonDetailView(
+            viewModel: PokemonDetailViewModel(
+                pokemonId: 1,
+                repository: MockPokemonRepository(),
+                favorites: MockFavoritesRepository(seedIDs: [1])
+            )
+        )
+    }
 }

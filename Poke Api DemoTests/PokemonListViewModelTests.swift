@@ -271,4 +271,20 @@ struct PokemonListViewModelTests {
         #expect(viewModel.state == .success(PokemonPage.fixture(ids: [1, 2, 3]).pokemons))
         #expect(viewModel.paging == .exhausted)
     }
+
+    // MARK: - Offline
+    @Test func offlinePageShowsBannerAndOnlineRefreshClearsIt() async {
+        var offlinePage = PokemonPage.fixture(ids: [1])
+        offlinePage.isOffline = true
+        let repository = StubPokemonRepository(listResult: .success(offlinePage))
+        let viewModel = PokemonListViewModel(repository: repository)
+        await viewModel.loadIfNeeded()
+
+        #expect(viewModel.isOffline)
+
+        repository.setListResult(.success(.fixture(ids: [1])))
+        await viewModel.refresh()
+
+        #expect(!viewModel.isOffline)
+    }
 }

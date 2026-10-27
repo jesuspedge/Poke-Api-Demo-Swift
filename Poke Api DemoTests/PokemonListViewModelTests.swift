@@ -160,4 +160,115 @@ struct PokemonListViewModelTests {
         #expect(viewModel.state == .success(PokemonPage.fixture(ids: [1]).pokemons))
         #expect(viewModel.paging == .failed(error.localizedDescription))
     }
+
+    // MARK: - Search and type filter
+    private func makeFilteringViewModel(
+        repository: StubPokemonRepository,
+        pageSize: Int = 20
+    ) -> PokemonListViewModel {
+        PokemonListViewModel(repository: repository, pageSize: pageSize, debounce: .zero)
+    }
+
+    @Test func filterPagesThroughMatches() async {
+        let repository = StubPokemonRepository(indexResult: .success(.fixtures(ids: [1, 2, 3, 4, 5])))
+        let viewModel = makeFilteringViewModel(repository: repository, pageSize: 2)
+        await viewModel.loadIfNeeded()
+
+        viewModel.filter.query = "pokemon"
+        await viewModel.loadIfNeeded()
+        await viewModel.loadNextPage()
+        await viewModel.loadNextPage()
+
+        #expect(viewModel.state == .success(PokemonPage.fixture(ids: [1, 2, 3, 4, 5]).pokemons))
+        #expect(viewModel.paging == .exhausted)
+        #expect(repository.requestedIDBatches == [[1, 2], [3, 4], [5]])
+    }
+
+    @Test func typeFilterLoadsOnlyTypeMembers() async {
+        let repository = StubPokemonRepository(
+            indexResult: .success(.fixtures(ids: [1, 4, 5, 25])),
+            typeIDsResult: .success([4, 5])
+        )
+        let viewModel = makeFilteringViewModel(repository: repository)
+        await viewModel.loadIfNeeded()
+
+        viewModel.filter.type = .fire
+        await viewModel.loadIfNeeded()
+
+        #expect(viewModel.state == .success(PokemonPage.fixture(ids: [4, 5]).pokemons))
+        #expect(repository.requestedTypes == [.fire])
+    }
+
+    @Test func clearingFilterReturnsToBrowsingFromFirstPage() async {
+        let repository = StubPokemonRepository(
+            listResult: .success(.fixture(ids: [1, 2], nextOffset: 2)),
+            indexResult: .success(.fixtures(ids: [25]))
+        )
+        let viewModel = makeFilteringViewModel(repository: repository)
+        await viewModel.loadIfNeeded()
+        viewModel.filter.query = "25"
+        await viewModel.loadIfNeeded()
+
+        viewModel.filter.query = ""
+        await viewModel.loadIfNeeded()
+
+        #expect(viewModel.state == .success(PokemonPage.fixture(ids: [1, 2]).pokemons))
+        #expect(repository.requestedOffsets == [0, 0])
+    }
+
+    @Test func unchangedFilterDoesNotReload() async {
+        let repository = StubPokemonRepository(indexResult: .success(.fixtures(ids: [1])))
+        let viewModel = makeFilteringViewModel(repository: repository)
+        viewModel.filter.query = "pokemon"
+        await viewModel.loadIfNeeded()
+
+        viewModel.filter.query = "pokemon  "
+        await viewModel.loadIfNeeded()
+
+        #expect(repository.indexCallCount == 1)
+    }
+
+    @Test func noMatchesShowsEmptyExhaustedList() async {
+        let repository = StubPokemonRepository(indexResult: .success(.fixtures(ids: [1])))
+        let viewModel = makeFilteringViewModel(repository: repository)
+        viewModel.filter.query = "missingno"
+
+        await viewModel.loadIfNeeded()
+
+        #expect(viewModel.state == .success([]))
+        #expect(viewModel.paging == .exhausted)
+        #expect(repository.requestedIDBatches.isEmpty)
+    }
+
+    @Test func searchErrorShowsErrorAndRetryRecovers() async {
+        let error = AppError.networkError("offline")
+        let repository = StubPokemonRepository(indexResult: .failure(error))
+        let viewModel = makeFilteringViewModel(repository: repository)
+        viewModel.filter.query = "pokemon"
+        await viewModel.loadIfNeeded()
+
+        #expect(viewModel.state == .error(error.localizedDescription))
+
+        repository.setIndexResult(.success(.fixtures(ids: [7])))
+        await viewModel.reload()
+
+        #expect(viewModel.state == .success(PokemonPage.fixture(ids: [7]).pokemons))
+    }
+
+    @Test func matchesPageErrorFailsPagingAndRetryContinues() async {
+        let repository = StubPokemonRepository(indexResult: .success(.fixtures(ids: [1, 2, 3])))
+        let viewModel = makeFilteringViewModel(repository: repository, pageSize: 2)
+        viewModel.filter.query = "pokemon"
+        await viewModel.loadIfNeeded()
+
+        repository.setIDsError(.httpStatus(500))
+        await viewModel.loadNextPage()
+        #expect(viewModel.paging == .failed(AppError.httpStatus(500).localizedDescription))
+
+        repository.setIDsError(nil)
+        await viewModel.loadNextPage()
+
+        #expect(viewModel.state == .success(PokemonPage.fixture(ids: [1, 2, 3]).pokemons))
+        #expect(viewModel.paging == .exhausted)
+    }
 }

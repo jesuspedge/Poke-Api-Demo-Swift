@@ -17,16 +17,38 @@ final class StubPokemonRepository: PokemonRepository {
     private let detailResult: OSAllocatedUnfairLock<Result<PokemonEntity, AppError>>
     private let calls = OSAllocatedUnfairLock(initialState: 0)
     private let offsets = OSAllocatedUnfairLock(initialState: [Int]())
+    private let indexResult: OSAllocatedUnfairLock<Result<[PokemonSummary], AppError>>
+    private let typeIDsResult: OSAllocatedUnfairLock<Result<Set<Int>, AppError>>
+    private let idsError = OSAllocatedUnfairLock<AppError?>(initialState: nil)
+    private let idBatches = OSAllocatedUnfairLock(initialState: [[Int]]())
+    private let types = OSAllocatedUnfairLock(initialState: [PokemonType]())
+    private let indexCalls = OSAllocatedUnfairLock(initialState: 0)
 
     var callCount: Int { calls.withLock { $0 } }
     var requestedOffsets: [Int] { offsets.withLock { $0 } }
+    var requestedIDBatches: [[Int]] { idBatches.withLock { $0 } }
+    var requestedTypes: [PokemonType] { types.withLock { $0 } }
+    var indexCallCount: Int { indexCalls.withLock { $0 } }
 
     init(
         listResult: Result<PokemonPage, AppError> = .success(.fixture()),
-        detailResult: Result<PokemonEntity, AppError> = .success(.fixture())
+        detailResult: Result<PokemonEntity, AppError> = .success(.fixture()),
+        indexResult: Result<[PokemonSummary], AppError> = .success([]),
+        typeIDsResult: Result<Set<Int>, AppError> = .success([])
     ) {
         self.listResult = OSAllocatedUnfairLock(initialState: listResult)
         self.detailResult = OSAllocatedUnfairLock(initialState: detailResult)
+        self.indexResult = OSAllocatedUnfairLock(initialState: indexResult)
+        self.typeIDsResult = OSAllocatedUnfairLock(initialState: typeIDsResult)
+    }
+
+    func setIndexResult(_ result: Result<[PokemonSummary], AppError>) {
+        indexResult.withLock { $0 = result }
+    }
+
+    // Makes getPokemons(ids:) fail with this error; nil restores the fixtures.
+    func setIDsError(_ error: AppError?) {
+        idsError.withLock { $0 = error }
     }
 
     func setListResult(_ result: Result<PokemonPage, AppError>) {
@@ -43,9 +65,33 @@ final class StubPokemonRepository: PokemonRepository {
         return listResult.withLock { $0 }
     }
 
+    func getPokemons(ids: [Int]) async -> Result<[PokemonEntity], AppError> {
+        idBatches.withLock { $0.append(ids) }
+        if let error = idsError.withLock({ $0 }) {
+            return .failure(error)
+        }
+        return .success(ids.map { .fixture(id: $0, name: "pokemon-\($0)") })
+    }
+
     func getPokemon(id: Int) async -> Result<PokemonEntity, AppError> {
         calls.withLock { $0 += 1 }
         return detailResult.withLock { $0 }
+    }
+
+    func getPokemonIndex() async -> Result<[PokemonSummary], AppError> {
+        indexCalls.withLock { $0 += 1 }
+        return indexResult.withLock { $0 }
+    }
+
+    func getPokemonIDs(ofType type: PokemonType) async -> Result<Set<Int>, AppError> {
+        types.withLock { $0.append(type) }
+        return typeIDsResult.withLock { $0 }
+    }
+}
+
+extension [PokemonSummary] {
+    static func fixtures(ids: [Int]) -> [PokemonSummary] {
+        ids.map { PokemonSummary(id: $0, name: "pokemon-\($0)") }
     }
 }
 
@@ -109,6 +155,13 @@ enum PokemonJSON {
             .joined(separator: ",")
         let nextJSON = next.map { "\"\($0)\"" } ?? "null"
         return Data("{\"count\": 1302, \"next\": \(nextJSON), \"results\": [\(results)]}".utf8)
+    }
+
+    static func typeDetail(ids: [Int]) -> Data {
+        let pokemon = ids
+            .map { "{\"slot\": 1, \"pokemon\": {\"name\": \"pokemon-\($0)\", \"url\": \"https://pokeapi.co/api/v2/pokemon/\($0)/\"}}" }
+            .joined(separator: ",")
+        return Data("{\"id\": 10, \"name\": \"fire\", \"pokemon\": [\(pokemon)]}".utf8)
     }
 
     static func model(

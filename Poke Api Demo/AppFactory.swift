@@ -15,7 +15,10 @@ enum AppFactory {
 
     @MainActor
     static func makeListViewModel() -> PokemonListViewModel {
-        PokemonListViewModel(repository: repository)
+        PokemonListViewModel(
+            repository: repository,
+            search: SearchPokemonUseCase(repository: repository)
+        )
     }
     
     @MainActor

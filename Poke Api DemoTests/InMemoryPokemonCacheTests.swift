@@ -18,4 +18,22 @@ struct InMemoryPokemonCacheTests {
 
         #expect(await cache.pokemon(id: 2) == nil)
     }
+
+    @Test func indexRoundTrips() async {
+        let cache = InMemoryPokemonCache()
+        #expect(await cache.index() == nil)
+
+        await cache.storeIndex(.fixtures(ids: [1, 2]))
+
+        #expect(await cache.index() == .fixtures(ids: [1, 2]))
+    }
+
+    @Test func typeIDsAreStoredPerType() async {
+        let cache = InMemoryPokemonCache()
+
+        await cache.storePokemonIDs([4, 5], ofType: .fire)
+
+        #expect(await cache.pokemonIDs(ofType: .fire) == [4, 5])
+        #expect(await cache.pokemonIDs(ofType: .water) == nil)
+    }
 }

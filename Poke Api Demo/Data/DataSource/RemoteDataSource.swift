@@ -8,7 +8,9 @@
 import Foundation
 
 struct PokemonRemoteSource: PokemonRepository {
-    private let baseUrl = "https://pokeapi.co/api/v2/pokemon"
+    private let apiRoot = "https://pokeapi.co/api/v2"
+    // Larger than the dex, so a single request returns every name.
+    private let indexLimit = 100_000
     private let mapper = PokemonMapper()
     private let client: HTTPClient
     private let decoder: JSONDecoder
@@ -27,24 +29,19 @@ struct PokemonRemoteSource: PokemonRepository {
     func getPokemons(offset: Int, limit: Int) async -> Result<PokemonPage, AppError> {
         do {
             let page: PokemonPageModel = try await get(try listURL(offset: offset, limit: limit))
-            let ids = page.results.compactMap(\.id)
-
-            let pokemons = try await withThrowingTaskGroup(of: (Int, PokemonEntity).self) { group in
-                for (index, id) in ids.enumerated() {
-                    group.addTask { (index, try await fetchPokemon(id: id)) }
-                }
-
-                // Keep the API order: ids jump to 10001+ near the end of the dex.
-                var indexed: [(Int, PokemonEntity)] = []
-                for try await result in group {
-                    indexed.append(result)
-                }
-                return indexed.sorted { $0.0 < $1.0 }.map(\.1)
-            }
+            let pokemons = try await fetchPokemons(ids: page.results.compactMap(\.id))
 
             let nextOffset = page.next == nil ? nil : offset + page.results.count
             return .success(PokemonPage(pokemons: pokemons, nextOffset: nextOffset))
 
+        } catch {
+            return .failure(mapError(error))
+        }
+    }
+
+    func getPokemons(ids: [Int]) async -> Result<[PokemonEntity], AppError> {
+        do {
+            return .success(try await fetchPokemons(ids: ids))
         } catch {
             return .failure(mapError(error))
         }
@@ -58,13 +55,63 @@ struct PokemonRemoteSource: PokemonRepository {
         }
     }
 
+    func getPokemonIndex() async -> Result<[PokemonSummary], AppError> {
+        if let cached = await cache.index() {
+            return .success(cached)
+        }
+
+        do {
+            let page: PokemonPageModel = try await get(try listURL(offset: 0, limit: indexLimit))
+            let index = page.results.compactMap { result in
+                result.id.map { PokemonSummary(id: $0, name: result.name) }
+            }
+            await cache.storeIndex(index)
+            return .success(index)
+        } catch {
+            return .failure(mapError(error))
+        }
+    }
+
+    func getPokemonIDs(ofType type: PokemonType) async -> Result<Set<Int>, AppError> {
+        if let cached = await cache.pokemonIDs(ofType: type) {
+            return .success(cached)
+        }
+
+        do {
+            guard let url = URL(string: "\(apiRoot)/type/\(type.rawValue)") else {
+                throw AppError.invalidURL
+            }
+            let model: TypeDetailModel = try await get(url)
+            let ids = Set(model.pokemon.compactMap(\.pokemon.id))
+            await cache.storePokemonIDs(ids, ofType: type)
+            return .success(ids)
+        } catch {
+            return .failure(mapError(error))
+        }
+    }
+
     // MARK: - Helpers
+    private func fetchPokemons(ids: [Int]) async throws -> [PokemonEntity] {
+        try await withThrowingTaskGroup(of: (Int, PokemonEntity).self) { group in
+            for (index, id) in ids.enumerated() {
+                group.addTask { (index, try await fetchPokemon(id: id)) }
+            }
+
+            // Keep the caller's order: ids jump to 10001+ near the end of the dex.
+            var indexed: [(Int, PokemonEntity)] = []
+            for try await result in group {
+                indexed.append(result)
+            }
+            return indexed.sorted { $0.0 < $1.0 }.map(\.1)
+        }
+    }
+
     private func fetchPokemon(id: Int) async throws -> PokemonEntity {
         if let cached = await cache.pokemon(id: id) {
             return cached
         }
 
-        guard let url = URL(string: "\(baseUrl)/\(id)") else {
+        guard let url = URL(string: "\(apiRoot)/pokemon/\(id)") else {
             throw AppError.invalidURL
         }
 
@@ -75,7 +122,7 @@ struct PokemonRemoteSource: PokemonRepository {
     }
 
     private func listURL(offset: Int, limit: Int) throws -> URL {
-        var components = URLComponents(string: baseUrl)
+        var components = URLComponents(string: "\(apiRoot)/pokemon")
         components?.queryItems = [
             URLQueryItem(name: "limit", value: String(limit)),
             URLQueryItem(name: "offset", value: String(offset))

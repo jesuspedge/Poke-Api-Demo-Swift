@@ -109,4 +109,62 @@ struct SwiftDataPokemonStoreTests {
         #expect(throws: Never.self) { try result.get() }
         #expect(await store.pokemon(id: 133)?.name == "eevee")
     }
+
+    // MARK: - Team
+    @Test func teamMembersAreInTheOrderAdded() async throws {
+        let store = try makeStore()
+
+        for id in [25, 1, 4] {
+            _ = await store.addToTeam(.fixture(id: id))
+        }
+
+        #expect(try await store.team().get().map(\.id) == [25, 1, 4])
+        #expect(await store.isOnTeam(id: 1))
+        #expect(!(await store.isOnTeam(id: 7)))
+    }
+
+    @Test func seventhMemberIsRejected() async throws {
+        let store = try makeStore()
+        for id in 1...6 {
+            _ = await store.addToTeam(.fixture(id: id))
+        }
+
+        let result = await store.addToTeam(.fixture(id: 7))
+
+        #expect(result.failureValue == .teamFull)
+        #expect(try await store.team().get().count == 6)
+        #expect(!(await store.isOnTeam(id: 7)))
+    }
+
+    @Test func readdingAMemberKeepsItsPlace() async throws {
+        let store = try makeStore()
+        _ = await store.addToTeam(.fixture(id: 1))
+        _ = await store.addToTeam(.fixture(id: 4))
+
+        let result = await store.addToTeam(.fixture(id: 1))
+
+        #expect(throws: Never.self) { try result.get() }
+        #expect(try await store.team().get().map(\.id) == [1, 4])
+    }
+
+    @Test func removingAMemberKeepsCacheAndFavorite() async throws {
+        let store = try makeStore()
+        _ = await store.setFavorite(true, for: .fixture(id: 25))
+        _ = await store.addToTeam(.fixture(id: 25))
+
+        _ = await store.removeFromTeam(id: 25)
+
+        #expect(try await store.team().get().isEmpty)
+        #expect(await store.isFavorite(id: 25))
+        #expect(await store.pokemon(id: 25) != nil)
+    }
+
+    @Test func storingAMemberAgainKeepsItOnTheTeam() async throws {
+        let store = try makeStore()
+        _ = await store.addToTeam(.fixture(id: 25))
+
+        await store.store([.fixture(id: 25, name: "pikachu")])
+
+        #expect(try await store.team().get().map(\.name) == ["pikachu"])
+    }
 }

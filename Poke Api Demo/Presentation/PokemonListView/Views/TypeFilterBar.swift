@@ -28,12 +28,7 @@ private struct TypeChip: View {
 
     var body: some View {
         Button(action: action) {
-            Label(type.displayName, systemImage: type.icon)
-                .font(.subheadline.weight(.medium))
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .foregroundStyle(isSelected ? Color.white : type.color)
-                .background(type.color.opacity(isSelected ? 1 : 0.15), in: .capsule)
+            TypeBadge(type: type, isFilled: isSelected)
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(isSelected ? .isSelected : [])

@@ -18,6 +18,8 @@ final class PokemonRecord {
     var stats: [StoredStat]
     var isFavorite = false
     var favoritedAt: Date?
+    // nil when the Pokémon isn't on the team
+    var teamAddedAt: Date?
 
     init(_ entity: PokemonEntity) {
         id = entity.id
@@ -30,7 +32,7 @@ final class PokemonRecord {
         stats = entity.stats.map { StoredStat(name: $0.name, baseStat: $0.baseStat) }
     }
 
-    // Refreshes the API data only; favorite fields belong to the user.
+    // Refreshes the API data only; favorite and team fields belong to the user.
     func update(from entity: PokemonEntity) {
         name = entity.name
         heightInMeters = entity.heightInMeters

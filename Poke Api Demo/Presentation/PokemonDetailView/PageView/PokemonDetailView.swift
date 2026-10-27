@@ -33,6 +33,13 @@ struct PokemonDetailView: View {
         .toolbar {
             if case .success = viewModel.state {
                 Button {
+                    Task { await viewModel.toggleTeam() }
+                } label: {
+                    Image(systemName: viewModel.isOnTeam ? "person.crop.circle.badge.checkmark" : "person.crop.circle.badge.plus")
+                }
+                .accessibilityLabel(viewModel.isOnTeam ? "Remove from team" : "Add to team")
+
+                Button {
                     Task { await viewModel.toggleFavorite() }
                 } label: {
                     Image(systemName: viewModel.isFavorite ? "heart.fill" : "heart")
@@ -51,6 +58,17 @@ struct PokemonDetailView: View {
         } message: {
             Text(viewModel.favoriteErrorMessage ?? "")
         }
+        .alert(
+            "Couldn't Update Team",
+            isPresented: Binding(
+                get: { viewModel.teamErrorMessage != nil },
+                set: { if !$0 { viewModel.teamErrorMessage = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(viewModel.teamErrorMessage ?? "")
+        }
         .task {
             await viewModel.loadIfNeeded()
         }
@@ -63,7 +81,8 @@ struct PokemonDetailView: View {
             viewModel: PokemonDetailViewModel(
                 pokemonId: 1,
                 repository: MockPokemonRepository(),
-                favorites: MockFavoritesRepository(seedIDs: [1])
+                favorites: MockFavoritesRepository(seedIDs: [1]),
+                team: MockTeamRepository()
             )
         )
     }

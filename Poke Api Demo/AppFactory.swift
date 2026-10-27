@@ -12,12 +12,13 @@ import SwiftData
 // MARK: - Composition Root Factory
 enum AppFactory {
 
-    // SwiftData store shared by the cache and favorites
+    // SwiftData store shared by the cache, favorites and the team
     private static let store = SwiftDataPokemonStore(modelContainer: makeContainer())
 
     // Single shared repository
     private static let repository: PokemonRepository = PokemonRemoteSource(cache: store)
     private static let favorites: FavoritesRepository = store
+    private static let team: TeamRepository = store
 
     @MainActor
     static func makeListViewModel() -> PokemonListViewModel {
@@ -29,12 +30,27 @@ enum AppFactory {
 
     @MainActor
     static func makeDetailViewModel(pokemonId: Int) -> PokemonDetailViewModel {
-        PokemonDetailViewModel(pokemonId: pokemonId, repository: repository, favorites: favorites)
+        PokemonDetailViewModel(pokemonId: pokemonId, repository: repository, favorites: favorites, team: team)
     }
 
     @MainActor
     static func makeFavoritesViewModel() -> FavoritesViewModel {
         FavoritesViewModel(favorites: favorites)
+    }
+
+    @MainActor
+    static func makeTeamViewModel() -> TeamViewModel {
+        TeamViewModel(team: team)
+    }
+
+    @MainActor
+    static func makeTeamPickerViewModel(excluding memberIDs: Set<Int>) -> TeamPickerViewModel {
+        TeamPickerViewModel(
+            search: SearchPokemonUseCase(repository: repository),
+            repository: repository,
+            team: team,
+            excludedIDs: memberIDs
+        )
     }
 
     // Falls back to an in-memory store so the app still runs if the on-disk store can't be opened.

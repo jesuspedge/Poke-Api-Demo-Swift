@@ -140,6 +140,64 @@ final class StubFavoritesRepository: FavoritesRepository {
     }
 }
 
+final class StubTeamRepository: TeamRepository {
+    private let members: OSAllocatedUnfairLock<[PokemonEntity]>
+    private let saveError = OSAllocatedUnfairLock<AppError?>(initialState: nil)
+    private let readError = OSAllocatedUnfairLock<AppError?>(initialState: nil)
+
+    var ids: [Int] { members.withLock { $0.map(\.id) } }
+
+    init(members: [PokemonEntity] = []) {
+        self.members = OSAllocatedUnfairLock(initialState: members)
+    }
+
+    func setSaveError(_ error: AppError?) {
+        saveError.withLock { $0 = error }
+    }
+
+    func setReadError(_ error: AppError?) {
+        readError.withLock { $0 = error }
+    }
+
+    func team() async -> Result<[PokemonEntity], AppError> {
+        if let error = readError.withLock({ $0 }) {
+            return .failure(error)
+        }
+        return .success(members.withLock { $0 })
+    }
+
+    func isOnTeam(id: Int) async -> Bool {
+        members.withLock { $0.contains { $0.id == id } }
+    }
+
+    func addToTeam(_ pokemon: PokemonEntity) async -> Result<Void, AppError> {
+        if let error = saveError.withLock({ $0 }) {
+            return .failure(error)
+        }
+        return members.withLock { members in
+            guard !members.contains(where: { $0.id == pokemon.id }) else { return .success(()) }
+            guard members.count < TeamAnalysis.maxTeamSize else { return .failure(.teamFull) }
+            members.append(pokemon)
+            return .success(())
+        }
+    }
+
+    func removeFromTeam(id: Int) async -> Result<Void, AppError> {
+        if let error = saveError.withLock({ $0 }) {
+            return .failure(error)
+        }
+        members.withLock { $0.removeAll { $0.id == id } }
+        return .success(())
+    }
+}
+
+extension Result {
+    var failureValue: Failure? {
+        guard case .failure(let error) = self else { return nil }
+        return error
+    }
+}
+
 final class RequestRecorder: Sendable {
     private let urls = OSAllocatedUnfairLock(initialState: [URL]())
 
@@ -157,7 +215,7 @@ extension PokemonPage {
 }
 
 extension PokemonEntity {
-    static func fixture(id: Int = 1, name: String = "bulbasaur") -> PokemonEntity {
+    static func fixture(id: Int = 1, name: String = "bulbasaur", types: [PokemonType] = [.grass, .poison]) -> PokemonEntity {
         PokemonEntity(
             id: id,
             name: name,
@@ -166,7 +224,7 @@ extension PokemonEntity {
             weightInKg: 6.9,
             artworkURL: URL(string: "https://example.com/\(id).png"),
             stats: [StatEntity(name: "hp", baseStat: 45)],
-            types: [.grass, .poison]
+            types: types
         )
     }
 }

@@ -164,3 +164,58 @@ extension SwiftDataPokemonStore: FavoritesRepository {
         }
     }
 }
+
+// MARK: - TeamRepository
+extension SwiftDataPokemonStore: TeamRepository {
+    func team() -> Result<[PokemonEntity], AppError> {
+        let descriptor = FetchDescriptor<PokemonRecord>(
+            predicate: #Predicate { $0.teamAddedAt != nil },
+            sortBy: [SortDescriptor(\.teamAddedAt)]
+        )
+        do {
+            return .success(try modelContext.fetch(descriptor).map(\.entity))
+        } catch {
+            logFailure("Reading the team", error)
+            return .failure(.persistence(error.localizedDescription))
+        }
+    }
+
+    func isOnTeam(id: Int) -> Bool {
+        do {
+            return try record(id: id)?.teamAddedAt != nil
+        } catch {
+            logFailure("Reading team member \(id)", error)
+            return false
+        }
+    }
+
+    func addToTeam(_ pokemon: PokemonEntity) -> Result<Void, AppError> {
+        do {
+            if try record(id: pokemon.id)?.teamAddedAt != nil { return .success(()) }
+
+            // Counted inside the actor, so two quick adds can't push the team past the limit.
+            let members = try modelContext.fetchCount(FetchDescriptor<PokemonRecord>(predicate: #Predicate { $0.teamAddedAt != nil }))
+            guard members < TeamAnalysis.maxTeamSize else { return .failure(.teamFull) }
+
+            try upsert([pokemon])[pokemon.id]?.teamAddedAt = .now
+            try modelContext.save()
+            return .success(())
+        } catch {
+            modelContext.rollback()
+            logFailure("Adding team member \(pokemon.id)", error)
+            return .failure(.persistence(error.localizedDescription))
+        }
+    }
+
+    func removeFromTeam(id: Int) -> Result<Void, AppError> {
+        do {
+            try record(id: id)?.teamAddedAt = nil
+            try modelContext.save()
+            return .success(())
+        } catch {
+            modelContext.rollback()
+            logFailure("Removing team member \(id)", error)
+            return .failure(.persistence(error.localizedDescription))
+        }
+    }
+}

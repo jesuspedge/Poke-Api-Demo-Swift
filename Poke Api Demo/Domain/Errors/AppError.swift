@@ -13,6 +13,7 @@ enum AppError: Error, Equatable, LocalizedError {
     case decodingError(String)
     case invalidURL
     case persistence(String)
+    case teamFull
     case unknown
 
     var errorDescription: String? {
@@ -27,6 +28,8 @@ enum AppError: Error, Equatable, LocalizedError {
             String(localized: "The request address is invalid.")
         case .persistence:
             String(localized: "We couldn't save your changes.")
+        case .teamFull:
+            String(localized: "Your team already has \(TeamAnalysis.maxTeamSize) Pokémon.")
         case .unknown:
             String(localized: "An unknown error occurred.")
         }

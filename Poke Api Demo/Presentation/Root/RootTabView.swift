@@ -8,6 +8,9 @@ struct RootTabView: View {
 
             FavoritesView(viewModel: AppFactory.makeFavoritesViewModel())
                 .tabItem { Label("Favorites", systemImage: "heart") }
+
+            TeamView(viewModel: AppFactory.makeTeamViewModel())
+                .tabItem { Label("Team", systemImage: "person.3") }
         }
     }
 }

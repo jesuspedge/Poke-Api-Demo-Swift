@@ -9,6 +9,7 @@ struct AppErrorTests {
         .decodingError("bad json"),
         .invalidURL,
         .persistence("disk full"),
+        .teamFull,
         .unknown,
     ])
     func localizedDescriptionUsesCustomMessage(error: AppError) {
@@ -16,6 +17,10 @@ struct AppErrorTests {
 
         #expect(description == error.errorDescription)
         #expect(!description.contains("couldn’t be completed"))
+    }
+
+    @Test func teamFullMessageIncludesTeamSize() {
+        #expect(AppError.teamFull.localizedDescription.contains("6"))
     }
 
     @Test func httpStatusMessageIncludesStatusCode() {

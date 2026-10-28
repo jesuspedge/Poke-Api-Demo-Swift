@@ -21,4 +21,7 @@ protocol PokemonRepository: Sendable {
 
     // getPokemonIdsByType
     func getPokemonIDs(ofType type: PokemonType) async -> Result<Set<Int>, AppError>
+
+    // getEvolutionChain (the chain of the Pokémon's species)
+    func getEvolutionChain(pokemonID: Int) async -> Result<EvolutionChain, AppError>
 }

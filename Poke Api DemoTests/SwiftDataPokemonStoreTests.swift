@@ -167,4 +167,26 @@ struct SwiftDataPokemonStoreTests {
 
         #expect(try await store.team().get().map(\.name) == ["pikachu"])
     }
+
+    // MARK: - Evolution chains
+    @Test func evolutionChainIsFoundFromEveryMember() async throws {
+        let store = try makeStore()
+
+        await store.storeEvolutionChain(.fixture())
+
+        for id in [1, 2, 3] {
+            #expect(await store.evolutionChain(speciesID: id) == .fixture())
+        }
+        #expect(await store.evolutionChain(speciesID: 4) == nil)
+    }
+
+    @Test func storingAChainAgainReplacesIt() async throws {
+        let store = try makeStore()
+        await store.storeEvolutionChain(EvolutionChain(id: 1, root: .fixture(id: 1, name: "old")))
+
+        await store.storeEvolutionChain(.fixture())
+
+        #expect(await store.evolutionChain(speciesID: 1) == .fixture())
+        #expect(await store.evolutionChain(speciesID: 3) == .fixture())
+    }
 }

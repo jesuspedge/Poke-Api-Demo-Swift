@@ -147,4 +147,58 @@ struct PokemonDetailViewModelTests {
         #expect(!viewModel.isOnTeam)
         #expect(team.ids.isEmpty)
     }
+
+    // MARK: - Evolution
+    @Test func evolutionLoadsAfterDetailAndSelectsCurrentPokemon() async {
+        let viewModel = PokemonDetailViewModel(
+            pokemonId: 2,
+            repository: StubPokemonRepository(),
+            favorites: StubFavoritesRepository(),
+            team: StubTeamRepository()
+        )
+
+        await viewModel.loadIfNeeded()
+
+        #expect(viewModel.evolution == .loaded(.fixture()))
+        #expect(viewModel.selectedEvolutionID == 2)
+    }
+
+    @Test func failedEvolutionKeepsDetailAndRetryRecovers() async {
+        let repository = StubPokemonRepository(evolutionResult: .failure(.networkError("offline")))
+        let viewModel = PokemonDetailViewModel(pokemonId: 1, repository: repository, favorites: StubFavoritesRepository(), team: StubTeamRepository())
+        await viewModel.loadIfNeeded()
+
+        #expect(viewModel.state == .success(.fixture()))
+        #expect(viewModel.evolution == .failed(AppError.networkError("offline").localizedDescription))
+
+        repository.setEvolutionResult(.success(.fixture()))
+        await viewModel.loadEvolution()
+        #expect(viewModel.evolution == .loaded(.fixture()))
+    }
+
+    @Test func failedDetailSkipsEvolution() async {
+        let repository = StubPokemonRepository(detailResult: .failure(.unknown))
+        let viewModel = PokemonDetailViewModel(pokemonId: 1, repository: repository, favorites: StubFavoritesRepository(), team: StubTeamRepository())
+
+        await viewModel.loadIfNeeded()
+
+        #expect(repository.evolutionCallCount == 0)
+    }
+
+    @Test func alternateFormSelectsNothing() async {
+        let viewModel = PokemonDetailViewModel(pokemonId: 10033, repository: StubPokemonRepository(), favorites: StubFavoritesRepository(), team: StubTeamRepository())
+
+        await viewModel.loadIfNeeded()
+
+        #expect(viewModel.selectedEvolutionID == nil)
+    }
+
+    @Test func selectEvolutionMovesTheSelection() async {
+        let viewModel = makeViewModel(team: StubTeamRepository())
+        await viewModel.loadIfNeeded()
+
+        viewModel.selectEvolution(3)
+
+        #expect(viewModel.selectedEvolutionID == 3)
+    }
 }

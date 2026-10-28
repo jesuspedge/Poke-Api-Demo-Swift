@@ -8,7 +8,13 @@ actor SwiftDataPokemonStore {
     private static let logger = Logger(subsystem: "Poke-Api-Demo", category: "Persistence")
 
     static func makeContainer(inMemory: Bool = false) throws -> ModelContainer {
-        let schema = Schema([PokemonRecord.self, PokemonSummaryRecord.self, TypeMembersRecord.self])
+        let schema = Schema([
+            PokemonRecord.self,
+            PokemonSummaryRecord.self,
+            TypeMembersRecord.self,
+            EvolutionChainRecord.self,
+            EvolutionLinkRecord.self,
+        ])
         let configuration = inMemory
             ? ModelConfiguration(UUID().uuidString, schema: schema, isStoredInMemoryOnly: true)
             : ModelConfiguration(schema: schema)
@@ -121,6 +127,50 @@ extension SwiftDataPokemonStore: PokemonCache {
             try modelContext.save()
         } catch {
             logFailure("Saving \(typeName) members", error)
+        }
+    }
+
+    func evolutionChain(speciesID: Int) -> EvolutionChain? {
+        do {
+            var linkDescriptor = FetchDescriptor<EvolutionLinkRecord>(predicate: #Predicate { $0.speciesID == speciesID })
+            linkDescriptor.fetchLimit = 1
+            guard let chainID = try modelContext.fetch(linkDescriptor).first?.chainID else { return nil }
+
+            var chainDescriptor = FetchDescriptor<EvolutionChainRecord>(predicate: #Predicate { $0.id == chainID })
+            chainDescriptor.fetchLimit = 1
+            guard let payload = try modelContext.fetch(chainDescriptor).first?.payload else { return nil }
+            return try JSONDecoder().decode(EvolutionChain.self, from: payload)
+        } catch {
+            logFailure("Reading the evolution chain of \(speciesID)", error)
+            return nil
+        }
+    }
+
+    func storeEvolutionChain(_ chain: EvolutionChain) {
+        let chainID = chain.id
+        let speciesIDs = chain.speciesIDs
+        do {
+            let payload = try JSONEncoder().encode(chain)
+            let existing = try modelContext.fetch(FetchDescriptor<EvolutionChainRecord>(predicate: #Predicate { $0.id == chainID }))
+            if let record = existing.first {
+                record.payload = payload
+            } else {
+                modelContext.insert(EvolutionChainRecord(id: chainID, payload: payload))
+            }
+
+            let links = try modelContext.fetch(FetchDescriptor<EvolutionLinkRecord>(predicate: #Predicate { speciesIDs.contains($0.speciesID) }))
+            let linksBySpecies = Dictionary(uniqueKeysWithValues: links.map { ($0.speciesID, $0) })
+            for speciesID in speciesIDs {
+                if let link = linksBySpecies[speciesID] {
+                    link.chainID = chainID
+                } else {
+                    modelContext.insert(EvolutionLinkRecord(speciesID: speciesID, chainID: chainID))
+                }
+            }
+            try modelContext.save()
+        } catch {
+            modelContext.rollback()
+            logFailure("Saving evolution chain \(chainID)", error)
         }
     }
 }

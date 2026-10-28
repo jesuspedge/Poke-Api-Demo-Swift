@@ -9,6 +9,7 @@ import SwiftUI
 
 struct PokemonListView: View {
     @State private var viewModel: PokemonListViewModel
+    @Namespace private var zoom
     
     init(viewModel: PokemonListViewModel) {
         _viewModel = State(initialValue: viewModel)
@@ -26,14 +27,11 @@ struct PokemonListView: View {
                         }
                     }
                 }
+                .sensoryFeedback(.selection, trigger: viewModel.filter.type)
                 .searchable(text: $viewModel.filter.query, prompt: "Search by name or number")
                 .navigationTitle("CHOOSE YOUR POKEMON")
                 .navigationBarTitleDisplayMode(.inline)
-                .navigationDestination(for: Int.self) { pokemonId in
-                    PokemonDetailView(
-                        viewModel: AppFactory.makeDetailViewModel(pokemonId: pokemonId)
-                    )
-                }
+                .pokemonDestinations(zoom: zoom)
         }
         .task(id: viewModel.filter) {
             await viewModel.loadIfNeeded()
@@ -52,7 +50,7 @@ struct PokemonListView: View {
         case .success(let pokemons):
             List {
                 ForEach(pokemons) { pokemon in
-                    PokemonNavigationRow(pokemon: pokemon)
+                    PokemonNavigationRow(pokemon: pokemon, namespace: zoom)
                 }
 
                 if viewModel.paging != .exhausted {

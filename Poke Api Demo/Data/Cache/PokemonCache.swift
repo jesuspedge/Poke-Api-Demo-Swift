@@ -9,12 +9,18 @@ protocol PokemonCache: Sendable {
 
     func pokemonIDs(ofType type: PokemonType) async -> Set<Int>?
     func storePokemonIDs(_ ids: Set<Int>, ofType type: PokemonType) async
+
+    // Found from any species in the chain.
+    func evolutionChain(speciesID: Int) async -> EvolutionChain?
+    func storeEvolutionChain(_ chain: EvolutionChain) async
 }
 
 actor InMemoryPokemonCache: PokemonCache {
     private var storage: [Int: PokemonEntity] = [:]
     private var summaries: [PokemonSummary]?
     private var idsByType: [PokemonType: Set<Int>] = [:]
+    private var chains: [Int: EvolutionChain] = [:]
+    private var chainIDBySpecies: [Int: Int] = [:]
 
     func pokemon(id: Int) -> PokemonEntity? {
         storage[id]
@@ -44,5 +50,16 @@ actor InMemoryPokemonCache: PokemonCache {
 
     func storePokemonIDs(_ ids: Set<Int>, ofType type: PokemonType) {
         idsByType[type] = ids
+    }
+
+    func evolutionChain(speciesID: Int) -> EvolutionChain? {
+        chainIDBySpecies[speciesID].flatMap { chains[$0] }
+    }
+
+    func storeEvolutionChain(_ chain: EvolutionChain) {
+        chains[chain.id] = chain
+        for speciesID in chain.speciesIDs {
+            chainIDBySpecies[speciesID] = chain.id
+        }
     }
 }

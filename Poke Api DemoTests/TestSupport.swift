@@ -23,19 +23,24 @@ final class StubPokemonRepository: PokemonRepository {
     private let idBatches = OSAllocatedUnfairLock(initialState: [[Int]]())
     private let types = OSAllocatedUnfairLock(initialState: [PokemonType]())
     private let indexCalls = OSAllocatedUnfairLock(initialState: 0)
+    private let evolutionResult: OSAllocatedUnfairLock<Result<EvolutionChain, AppError>>
+    private let evolutionCalls = OSAllocatedUnfairLock(initialState: 0)
 
     var callCount: Int { calls.withLock { $0 } }
     var requestedOffsets: [Int] { offsets.withLock { $0 } }
     var requestedIDBatches: [[Int]] { idBatches.withLock { $0 } }
     var requestedTypes: [PokemonType] { types.withLock { $0 } }
     var indexCallCount: Int { indexCalls.withLock { $0 } }
+    var evolutionCallCount: Int { evolutionCalls.withLock { $0 } }
 
     init(
         listResult: Result<PokemonPage, AppError> = .success(.fixture()),
         detailResult: Result<PokemonEntity, AppError> = .success(.fixture()),
         indexResult: Result<[PokemonSummary], AppError> = .success([]),
-        typeIDsResult: Result<Set<Int>, AppError> = .success([])
+        typeIDsResult: Result<Set<Int>, AppError> = .success([]),
+        evolutionResult: Result<EvolutionChain, AppError> = .success(.fixture())
     ) {
+        self.evolutionResult = OSAllocatedUnfairLock(initialState: evolutionResult)
         self.listResult = OSAllocatedUnfairLock(initialState: listResult)
         self.detailResult = OSAllocatedUnfairLock(initialState: detailResult)
         self.indexResult = OSAllocatedUnfairLock(initialState: indexResult)
@@ -57,6 +62,10 @@ final class StubPokemonRepository: PokemonRepository {
 
     func setDetailResult(_ result: Result<PokemonEntity, AppError>) {
         detailResult.withLock { $0 = result }
+    }
+
+    func setEvolutionResult(_ result: Result<EvolutionChain, AppError>) {
+        evolutionResult.withLock { $0 = result }
     }
 
     func getPokemons(offset: Int, limit: Int) async -> Result<PokemonPage, AppError> {
@@ -86,6 +95,11 @@ final class StubPokemonRepository: PokemonRepository {
     func getPokemonIDs(ofType type: PokemonType) async -> Result<Set<Int>, AppError> {
         types.withLock { $0.append(type) }
         return typeIDsResult.withLock { $0 }
+    }
+
+    func getEvolutionChain(pokemonID: Int) async -> Result<EvolutionChain, AppError> {
+        evolutionCalls.withLock { $0 += 1 }
+        return evolutionResult.withLock { $0 }
     }
 }
 
@@ -229,6 +243,26 @@ extension PokemonEntity {
     }
 }
 
+extension EvolutionNode {
+    static func fixture(id: Int, name: String, method: EvolutionMethod? = nil, evolvesTo: [EvolutionNode] = []) -> EvolutionNode {
+        EvolutionNode(
+            species: PokemonSummary(id: id, name: name),
+            artworkURL: EvolutionMapper.artworkURL(forSpeciesID: id),
+            method: method,
+            evolvesTo: evolvesTo
+        )
+    }
+}
+
+extension EvolutionChain {
+    // Bulbasaur -> Ivysaur (Lv. 16) -> Venusaur (Lv. 32)
+    static func fixture() -> EvolutionChain {
+        let venusaur = EvolutionNode.fixture(id: 3, name: "venusaur", method: .level(32))
+        let ivysaur = EvolutionNode.fixture(id: 2, name: "ivysaur", method: .level(16), evolvesTo: [venusaur])
+        return EvolutionChain(id: 1, root: .fixture(id: 1, name: "bulbasaur", evolvesTo: [ivysaur]))
+    }
+}
+
 enum PokemonJSON {
     static func make(
         id: Int = 1,
@@ -272,5 +306,58 @@ enum PokemonJSON {
         artwork: String? = "\"https://example.com/1.png\""
     ) throws -> PokemonModel {
         try JSONDecoder().decode(PokemonModel.self, from: make(types: types, artwork: artwork))
+    }
+
+    // MARK: - Evolution
+    static func species(id: Int, name: String, chainID: Int?) -> Data {
+        let chain = chainID.map { "{\"url\": \"https://pokeapi.co/api/v2/evolution-chain/\($0)/\"}" } ?? "null"
+        return Data("{\"id\": \(id), \"name\": \"\(name)\", \"evolution_chain\": \(chain)}".utf8)
+    }
+
+    // /pokemon/{id} trimmed to the species link
+    static func speciesLink(speciesID: Int, name: String) -> Data {
+        Data("{\"species\": {\"name\": \"\(name)\", \"url\": \"https://pokeapi.co/api/v2/pokemon-species/\(speciesID)/\"}}".utf8)
+    }
+
+    static func evolutionChain(id: Int, chain: String) -> Data {
+        Data("{\"id\": \(id), \"chain\": \(chain)}".utf8)
+    }
+
+    static func chainLink(id: Int, name: String, details: [String] = [], evolvesTo: [String] = []) -> String {
+        """
+        {"species": {"name": "\(name)", "url": "https://pokeapi.co/api/v2/pokemon-species/\(id)/"},
+         "evolution_details": [\(details.joined(separator: ","))],
+         "evolves_to": [\(evolvesTo.joined(separator: ","))],
+         "is_baby": false}
+        """
+    }
+
+    static func detail(
+        trigger: String,
+        minLevel: Int? = nil,
+        item: String? = nil,
+        heldItem: String? = nil,
+        minHappiness: Int? = nil
+    ) -> String {
+        func resource(_ name: String?, _ kind: String) -> String {
+            name.map { "{\"name\": \"\($0)\", \"url\": \"https://pokeapi.co/api/v2/\(kind)/1/\"}" } ?? "null"
+        }
+        return """
+        {"trigger": \(resource(trigger, "evolution-trigger")),
+         "min_level": \(minLevel.map(String.init) ?? "null"),
+         "item": \(resource(item, "item")),
+         "held_item": \(resource(heldItem, "item")),
+         "min_happiness": \(minHappiness.map(String.init) ?? "null"),
+         "time_of_day": ""}
+        """
+    }
+
+    // Bulbasaur -> Ivysaur (Lv. 16) -> Venusaur (Lv. 32), chain 1
+    static func bulbasaurChain() -> Data {
+        evolutionChain(id: 1, chain: chainLink(id: 1, name: "bulbasaur", evolvesTo: [
+            chainLink(id: 2, name: "ivysaur", details: [detail(trigger: "level-up", minLevel: 16)], evolvesTo: [
+                chainLink(id: 3, name: "venusaur", details: [detail(trigger: "level-up", minLevel: 32)]),
+            ]),
+        ]))
     }
 }

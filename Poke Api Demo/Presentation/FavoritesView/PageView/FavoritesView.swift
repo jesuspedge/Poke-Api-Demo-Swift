@@ -2,6 +2,7 @@ import SwiftUI
 
 struct FavoritesView: View {
     @State private var viewModel: FavoritesViewModel
+    @Namespace private var zoom
 
     init(viewModel: FavoritesViewModel) {
         _viewModel = State(initialValue: viewModel)
@@ -17,11 +18,7 @@ struct FavoritesView: View {
                 }
                 .navigationTitle("FAVORITES")
                 .navigationBarTitleDisplayMode(.inline)
-                .navigationDestination(for: Int.self) { pokemonId in
-                    PokemonDetailView(
-                        viewModel: AppFactory.makeDetailViewModel(pokemonId: pokemonId)
-                    )
-                }
+                .pokemonDestinations(zoom: zoom)
                 .alert(
                     "Couldn't Update Favorites",
                     isPresented: Binding(
@@ -52,7 +49,7 @@ struct FavoritesView: View {
 
         case .success(let pokemons):
             List(pokemons) { pokemon in
-                PokemonNavigationRow(pokemon: pokemon)
+                PokemonNavigationRow(pokemon: pokemon, namespace: zoom)
                     .swipeActions {
                         Button("Remove", systemImage: "heart.slash", role: .destructive) {
                             Task { await viewModel.remove(pokemon) }

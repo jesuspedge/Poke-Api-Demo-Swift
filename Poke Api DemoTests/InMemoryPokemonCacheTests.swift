@@ -44,4 +44,15 @@ struct InMemoryPokemonCacheTests {
         #expect(await cache.pokemons(offset: 0, limit: 2).map(\.id) == [1, 4])
         #expect(await cache.pokemons(offset: 2, limit: 2).map(\.id) == [25])
     }
+
+    @Test func evolutionChainIsFoundFromEveryMember() async {
+        let cache = InMemoryPokemonCache()
+
+        await cache.storeEvolutionChain(.fixture())
+
+        for id in [1, 2, 3] {
+            #expect(await cache.evolutionChain(speciesID: id) == .fixture())
+        }
+        #expect(await cache.evolutionChain(speciesID: 4) == nil)
+    }
 }

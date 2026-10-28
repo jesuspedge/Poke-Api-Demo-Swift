@@ -11,7 +11,10 @@ struct PokemonRemoteSource: PokemonRepository {
     private let apiRoot = "https://pokeapi.co/api/v2"
     // Larger than the dex, so a single request returns every name.
     private let indexLimit = 100_000
+    // Default forms share their species id; alternate forms (megas, regional forms...) start at 10001.
+    private let firstAlternateFormID = 10_001
     private let mapper = PokemonMapper()
+    private let evolutionMapper = EvolutionMapper()
     private let client: HTTPClient
     private let decoder: JSONDecoder
     private let cache: PokemonCache
@@ -94,7 +97,39 @@ struct PokemonRemoteSource: PokemonRepository {
         }
     }
 
+    func getEvolutionChain(pokemonID: Int) async -> Result<EvolutionChain, AppError> {
+        do {
+            let speciesID = try await speciesID(forPokemonID: pokemonID)
+            if let cached = await cache.evolutionChain(speciesID: speciesID) {
+                return .success(cached)
+            }
+
+            let species: PokemonSpeciesModel = try await get(try resourceURL("pokemon-species", id: speciesID))
+            let chain: EvolutionChain
+            if let chainURL = species.evolutionChain.flatMap({ URL(string: $0.url) }) {
+                chain = evolutionMapper.toEvolutionChain(try await get(chainURL))
+            } else {
+                chain = evolutionMapper.singleStageChain(for: species)
+            }
+
+            await cache.storeEvolutionChain(chain)
+            return .success(chain)
+        } catch {
+            return .failure(mapError(error))
+        }
+    }
+
     // MARK: - Helpers
+    private func speciesID(forPokemonID id: Int) async throws -> Int {
+        guard id >= firstAlternateFormID else { return id }
+
+        let link: PokemonSpeciesLinkModel = try await get(try resourceURL("pokemon", id: id))
+        guard let speciesID = link.species.id else {
+            throw AppError.decodingError("Missing species id for Pokémon \(id)")
+        }
+        return speciesID
+    }
+
     // Offline fallback: pages through the Pokémon saved on this device.
     private func savedPage(offset: Int, limit: Int) async -> PokemonPage? {
         let saved = await cache.pokemons(offset: offset, limit: limit)
@@ -126,14 +161,17 @@ struct PokemonRemoteSource: PokemonRepository {
             return cached
         }
 
-        guard let url = URL(string: "\(apiRoot)/pokemon/\(id)") else {
-            throw AppError.invalidURL
-        }
-
-        let model: PokemonModel = try await get(url)
+        let model: PokemonModel = try await get(try resourceURL("pokemon", id: id))
         let pokemon = mapper.toPokemonEntity(model)
         await cache.store([pokemon])
         return pokemon
+    }
+
+    private func resourceURL(_ resource: String, id: Int) throws -> URL {
+        guard let url = URL(string: "\(apiRoot)/\(resource)/\(id)") else {
+            throw AppError.invalidURL
+        }
+        return url
     }
 
     private func listURL(offset: Int, limit: Int) throws -> URL {

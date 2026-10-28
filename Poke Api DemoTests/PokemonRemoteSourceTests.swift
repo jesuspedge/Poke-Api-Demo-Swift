@@ -189,6 +189,56 @@ struct PokemonRemoteSourceTests {
         #expect(result == .failure(.httpStatus(500)))
     }
 
+    // MARK: - Evolution chain
+    @Test func getEvolutionChainRequestsSpeciesThenChainAndCachesIt() async throws {
+        let recorder = RequestRecorder()
+        let source = PokemonRemoteSource(client: Self.evolutionClient(recorder: recorder))
+
+        let chain = try await source.getEvolutionChain(pokemonID: 2).get()
+        // Another member of the same chain is served from the cache.
+        let again = try await source.getEvolutionChain(pokemonID: 3).get()
+
+        #expect(chain == .fixture())
+        #expect(again == .fixture())
+        #expect(recorder.all.map(\.absoluteString) == [
+            "https://pokeapi.co/api/v2/pokemon-species/2",
+            "https://pokeapi.co/api/v2/evolution-chain/1/",
+        ])
+    }
+
+    @Test func alternateFormReadsItsSpeciesFirst() async throws {
+        let recorder = RequestRecorder()
+        let source = PokemonRemoteSource(client: Self.evolutionClient(recorder: recorder))
+
+        _ = try await source.getEvolutionChain(pokemonID: 10033).get()
+
+        #expect(recorder.all.map(\.absoluteString).first == "https://pokeapi.co/api/v2/pokemon/10033")
+        #expect(recorder.all.map(\.absoluteString).dropFirst().first == "https://pokeapi.co/api/v2/pokemon-species/3")
+    }
+
+    @Test func speciesWithoutChainGivesASingleStage() async throws {
+        let client = StubHTTPClient { _ in (PokemonJSON.species(id: 128, name: "tauros", chainID: nil), 200) }
+        let source = PokemonRemoteSource(client: client)
+
+        let chain = try await source.getEvolutionChain(pokemonID: 128).get()
+
+        #expect(chain.stages.map { $0.map(\.species.name) } == [["tauros"]])
+    }
+
+    @Test func getEvolutionChainFailsWithHTTPStatus() async {
+        let source = PokemonRemoteSource(client: StubHTTPClient { _ in (Data(), 404) })
+
+        #expect(await source.getEvolutionChain(pokemonID: 1) == .failure(.httpStatus(404)))
+    }
+
+    @Test func savedChainIsUsedOffline() async throws {
+        let cache = InMemoryPokemonCache()
+        await cache.storeEvolutionChain(.fixture())
+        let source = PokemonRemoteSource(client: StubHTTPClient { _ in throw URLError(.notConnectedToInternet) }, cache: cache)
+
+        #expect(try await source.getEvolutionChain(pokemonID: 1).get() == .fixture())
+    }
+
     // MARK: - Helpers
     private static func pagedClient(ids: [Int], next: String?, recorder: RequestRecorder? = nil) -> StubHTTPClient {
         StubHTTPClient { url in
@@ -198,6 +248,22 @@ struct PokemonRemoteSourceTests {
             }
             let id = try #require(Int(url.lastPathComponent))
             return (PokemonJSON.make(id: id, name: "pokemon-\(id)"), 200)
+        }
+    }
+
+    // Serves the Bulbasaur line: species 1-3 point at chain 1; form 10033 is Mega Venusaur.
+    private static func evolutionClient(recorder: RequestRecorder) -> StubHTTPClient {
+        StubHTTPClient { url in
+            recorder.record(url)
+            let id = try #require(Int(url.lastPathComponent))
+            switch url.deletingLastPathComponent().lastPathComponent {
+            case "pokemon":
+                return (PokemonJSON.speciesLink(speciesID: 3, name: "venusaur"), 200)
+            case "pokemon-species":
+                return (PokemonJSON.species(id: id, name: "pokemon-\(id)", chainID: 1), 200)
+            default:
+                return (PokemonJSON.bulbasaurChain(), 200)
+            }
         }
     }
 }

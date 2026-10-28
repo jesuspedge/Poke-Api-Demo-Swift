@@ -2,7 +2,10 @@ import SwiftUI
 
 struct TeamView: View {
     @State private var viewModel: TeamViewModel
+    @Namespace private var zoom
     @State private var isPickerPresented = false
+    // Bumped on swipe-to-remove only, not when the team shrinks after a change on another screen.
+    @State private var removeFeedback = 0
 
     init(viewModel: TeamViewModel) {
         _viewModel = State(initialValue: viewModel)
@@ -18,11 +21,7 @@ struct TeamView: View {
                 }
                 .navigationTitle("TEAM")
                 .navigationBarTitleDisplayMode(.inline)
-                .navigationDestination(for: Int.self) { pokemonId in
-                    PokemonDetailView(
-                        viewModel: AppFactory.makeDetailViewModel(pokemonId: pokemonId)
-                    )
-                }
+                .pokemonDestinations(zoom: zoom)
                 .toolbar {
                     Button("Add Pokémon", systemImage: "plus") {
                         isPickerPresented = true
@@ -35,6 +34,8 @@ struct TeamView: View {
                         viewModel: AppFactory.makeTeamPickerViewModel(excluding: Set(viewModel.members.map(\.id)))
                     )
                 }
+                .sensoryFeedback(.impact, trigger: removeFeedback)
+                .sensoryFeedback(.error, trigger: viewModel.removeErrorMessage) { _, new in new != nil }
                 .alert(
                     "Couldn't Update Team",
                     isPresented: Binding(
@@ -71,9 +72,10 @@ struct TeamView: View {
             List {
                 Section("Members (\(members.count)/\(TeamAnalysis.maxTeamSize))") {
                     ForEach(members) { pokemon in
-                        PokemonNavigationRow(pokemon: pokemon)
+                        PokemonNavigationRow(pokemon: pokemon, namespace: zoom)
                             .swipeActions {
                                 Button("Remove", systemImage: "person.crop.circle.badge.minus", role: .destructive) {
+                                    removeFeedback += 1
                                     Task { await viewModel.remove(pokemon) }
                                 }
                             }

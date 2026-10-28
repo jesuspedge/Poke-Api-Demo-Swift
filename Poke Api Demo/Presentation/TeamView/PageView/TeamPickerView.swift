@@ -3,6 +3,7 @@ import SwiftUI
 struct TeamPickerView: View {
     @State private var viewModel: TeamPickerViewModel
     @Environment(\.dismiss) private var dismiss
+    @State private var didAdd = false
 
     init(viewModel: TeamPickerViewModel) {
         _viewModel = State(initialValue: viewModel)
@@ -20,6 +21,8 @@ struct TeamPickerView: View {
                         Button("Cancel") { dismiss() }
                     }
                 }
+                .sensoryFeedback(.success, trigger: didAdd) { _, new in new }
+                .sensoryFeedback(.error, trigger: viewModel.pickErrorMessage) { _, new in new != nil }
                 .alert(
                     "Couldn't Add Pokémon",
                     isPresented: Binding(
@@ -50,7 +53,10 @@ struct TeamPickerView: View {
             List(matches, id: \.id) { summary in
                 Button {
                     Task {
-                        if await viewModel.pick(summary) { dismiss() }
+                        if await viewModel.pick(summary) {
+                            didAdd = true
+                            dismiss()
+                        }
                     }
                 } label: {
                     HStack {

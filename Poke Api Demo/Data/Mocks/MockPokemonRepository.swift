@@ -46,6 +46,21 @@ struct MockPokemonRepository: PokemonRepository {
         }
     }
 
+    // Bulbasaur -> Ivysaur (Lv. 16) -> Venusaur (Lv. 32), whatever the Pokémon.
+    func getEvolutionChain(pokemonID: Int) async -> Result<EvolutionChain, AppError> {
+        func node(_ id: Int, _ name: String, _ method: EvolutionMethod?, _ next: [EvolutionNode]) -> EvolutionNode {
+            EvolutionNode(
+                species: PokemonSummary(id: id, name: name),
+                artworkURL: EvolutionMapper.artworkURL(forSpeciesID: id),
+                method: method,
+                evolvesTo: next
+            )
+        }
+        let venusaur = node(3, "venusaur", .level(32), [])
+        let ivysaur = node(2, "ivysaur", .level(16), [venusaur])
+        return .success(EvolutionChain(id: 1, root: node(1, "bulbasaur", nil, [ivysaur])))
+    }
+
     private func loadFixtures(ids: [Int]) -> Result<[PokemonEntity], AppError> {
         do {
             return .success(try ids.map {

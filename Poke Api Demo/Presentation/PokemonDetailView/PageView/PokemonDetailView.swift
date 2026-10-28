@@ -9,6 +9,8 @@ import SwiftUI
 
 struct PokemonDetailView: View {
     @State private var viewModel: PokemonDetailViewModel
+    // Bumped on taps only: the flags also change when the screen loads, which shouldn't buzz.
+    @State private var tapFeedback = 0
 
     init(viewModel: PokemonDetailViewModel) {
         _viewModel = State(initialValue: viewModel)
@@ -24,6 +26,18 @@ struct PokemonDetailView: View {
             case .success(let pokemon):
                 ScrollView {
                     PokemonDetailCard(pokemon: pokemon)
+
+                    EvolutionChainView(
+                        state: viewModel.evolution,
+                        selectedID: viewModel.selectedEvolutionID,
+                        currentID: viewModel.pokemonId,
+                        color: pokemon.primaryType.color,
+                        onSelect: { id in
+                            tapFeedback += 1
+                            viewModel.selectEvolution(id)
+                        },
+                        onRetry: viewModel.loadEvolution
+                    )
                 }
 
             case .error(let message):
@@ -33,6 +47,7 @@ struct PokemonDetailView: View {
         .toolbar {
             if case .success = viewModel.state {
                 Button {
+                    tapFeedback += 1
                     Task { await viewModel.toggleTeam() }
                 } label: {
                     Image(systemName: viewModel.isOnTeam ? "person.crop.circle.badge.checkmark" : "person.crop.circle.badge.plus")
@@ -40,6 +55,7 @@ struct PokemonDetailView: View {
                 .accessibilityLabel(viewModel.isOnTeam ? "Remove from team" : "Add to team")
 
                 Button {
+                    tapFeedback += 1
                     Task { await viewModel.toggleFavorite() }
                 } label: {
                     Image(systemName: viewModel.isFavorite ? "heart.fill" : "heart")
@@ -47,6 +63,9 @@ struct PokemonDetailView: View {
                 .accessibilityLabel(viewModel.isFavorite ? "Remove from favorites" : "Add to favorites")
             }
         }
+        .sensoryFeedback(.selection, trigger: tapFeedback)
+        .sensoryFeedback(.error, trigger: viewModel.favoriteErrorMessage) { _, new in new != nil }
+        .sensoryFeedback(.error, trigger: viewModel.teamErrorMessage) { _, new in new != nil }
         .alert(
             "Couldn't Update Favorites",
             isPresented: Binding(

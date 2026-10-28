@@ -15,6 +15,9 @@ final class PokemonDetailViewModel {
     var teamErrorMessage: String?
     private(set) var isFavorite = false
     private(set) var isOnTeam = false
+    private(set) var evolution: EvolutionState = .loading
+    // The evolution chain member that's highlighted; starts at this Pokémon.
+    private(set) var selectedEvolutionID: Int?
 
     let pokemonId: Int
     private let repository: PokemonRepository
@@ -53,9 +56,31 @@ final class PokemonDetailViewModel {
         switch result {
         case .success(let pokemon):
             state = .success(pokemon)
+            // The detail is already on screen; only the evolution section waits for this.
+            await loadEvolution()
         case .failure(let error):
             state = .error(error.localizedDescription)
         }
+    }
+
+    func loadEvolution() async {
+        evolution = .loading
+
+        let result = await repository.getEvolutionChain(pokemonID: pokemonId)
+        guard !Task.isCancelled else { return }
+
+        switch result {
+        case .success(let chain):
+            evolution = .loaded(chain)
+            // Alternate forms aren't in the chain by id, so nothing is highlighted for them.
+            selectedEvolutionID = chain.speciesIDs.contains(pokemonId) ? pokemonId : nil
+        case .failure(let error):
+            evolution = .failed(error.localizedDescription)
+        }
+    }
+
+    func selectEvolution(_ speciesID: Int) {
+        selectedEvolutionID = speciesID
     }
 
     // Updates the heart right away and reverts it if saving fails.

@@ -82,3 +82,27 @@ final class TypeMembersRecord {
         self.ids = ids
     }
 }
+
+// The whole chain as JSON: it's always read and written as one tree.
+@Model
+final class EvolutionChainRecord {
+    @Attribute(.unique) var id: Int
+    var payload: Data
+
+    init(id: Int, payload: Data) {
+        self.id = id
+        self.payload = payload
+    }
+}
+
+// One per species in a chain, so the chain can be found from any member.
+@Model
+final class EvolutionLinkRecord {
+    @Attribute(.unique) var speciesID: Int
+    var chainID: Int
+
+    init(speciesID: Int, chainID: Int) {
+        self.speciesID = speciesID
+        self.chainID = chainID
+    }
+}

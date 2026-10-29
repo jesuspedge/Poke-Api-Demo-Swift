@@ -1,4 +1,5 @@
 import Testing
+
 @testable import Poke_Api_Demo
 
 @MainActor
@@ -45,7 +46,8 @@ struct PokemonListViewModelTests {
     }
 
     @Test func singlePageIsExhausted() async {
-        let viewModel = PokemonListViewModel(repository: StubPokemonRepository(listResult: .success(.fixture(nextOffset: nil))))
+        let viewModel = PokemonListViewModel(
+            repository: StubPokemonRepository(listResult: .success(.fixture(nextOffset: nil))))
 
         await viewModel.loadIfNeeded()
 

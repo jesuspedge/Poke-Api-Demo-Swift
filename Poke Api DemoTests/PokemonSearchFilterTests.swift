@@ -1,4 +1,5 @@
 import Testing
+
 @testable import Poke_Api_Demo
 
 struct PokemonSearchFilterTests {
@@ -9,7 +10,7 @@ struct PokemonSearchFilterTests {
         PokemonSummary(id: 122, name: "mr-mime"),
         PokemonSummary(id: 172, name: "pichu"),
         PokemonSummary(id: 669, name: "flabébé"),
-        PokemonSummary(id: 10080, name: "pikachu-rock-star")
+        PokemonSummary(id: 10080, name: "pikachu-rock-star"),
     ]
 
     private func ids(_ query: String, typeIDs: Set<Int>? = nil) -> [Int] {
@@ -22,7 +23,7 @@ struct PokemonSearchFilterTests {
         ("FLABEBE", [669]),
         ("mr mime", [122]),
         ("Mr. Mime", []),
-        ("zzz", [])
+        ("zzz", []),
     ])
     func matchesNamesIgnoringCaseDiacriticsAndSpaces(query: String, expected: [Int]) {
         #expect(ids(query) == expected)
@@ -38,7 +39,7 @@ struct PokemonSearchFilterTests {
             PokemonSummary(id: 1, name: "bulbachu"),
             PokemonSummary(id: 2, name: "chu"),
             PokemonSummary(id: 3, name: "pichu"),
-            PokemonSummary(id: 4, name: "chunky")
+            PokemonSummary(id: 4, name: "chunky"),
         ]
 
         let result = PokemonSearchFilter.filter(index, query: "chu", typeIDs: nil).map(\.id)

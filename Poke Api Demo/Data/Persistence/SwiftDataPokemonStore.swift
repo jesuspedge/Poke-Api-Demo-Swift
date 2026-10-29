@@ -1,6 +1,6 @@
 import Foundation
-import os
 import SwiftData
+import os
 
 // The ModelActor owns its ModelContext, so SwiftData work stays off the main actor and Sendable-safe.
 @ModelActor
@@ -15,7 +15,8 @@ actor SwiftDataPokemonStore {
             EvolutionChainRecord.self,
             EvolutionLinkRecord.self,
         ])
-        let configuration = inMemory
+        let configuration =
+            inMemory
             ? ModelConfiguration(UUID().uuidString, schema: schema, isStoredInMemoryOnly: true)
             : ModelConfiguration(schema: schema)
         return try ModelContainer(for: schema, configurations: configuration)
@@ -32,7 +33,8 @@ actor SwiftDataPokemonStore {
     // same unique id would replace the stored one and lose its favorite flag.
     private func upsert(_ pokemons: [PokemonEntity]) throws -> [Int: PokemonRecord] {
         let ids = pokemons.map(\.id)
-        let existing = try modelContext.fetch(FetchDescriptor<PokemonRecord>(predicate: #Predicate { ids.contains($0.id) }))
+        let existing = try modelContext.fetch(
+            FetchDescriptor<PokemonRecord>(predicate: #Predicate { ids.contains($0.id) }))
         var recordsByID = Dictionary(uniqueKeysWithValues: existing.map { ($0.id, $0) })
 
         for pokemon in pokemons {
@@ -97,7 +99,9 @@ extension SwiftDataPokemonStore: PokemonCache {
     func storeIndex(_ index: [PokemonSummary]) {
         do {
             try modelContext.delete(model: PokemonSummaryRecord.self)
-            index.forEach { modelContext.insert(PokemonSummaryRecord($0)) }
+            for summary in index {
+                modelContext.insert(PokemonSummaryRecord(summary))
+            }
             try modelContext.save()
         } catch {
             logFailure("Saving the index", error)
@@ -132,7 +136,8 @@ extension SwiftDataPokemonStore: PokemonCache {
 
     func evolutionChain(speciesID: Int) -> EvolutionChain? {
         do {
-            var linkDescriptor = FetchDescriptor<EvolutionLinkRecord>(predicate: #Predicate { $0.speciesID == speciesID })
+            var linkDescriptor = FetchDescriptor<EvolutionLinkRecord>(
+                predicate: #Predicate { $0.speciesID == speciesID })
             linkDescriptor.fetchLimit = 1
             guard let chainID = try modelContext.fetch(linkDescriptor).first?.chainID else { return nil }
 
@@ -151,14 +156,16 @@ extension SwiftDataPokemonStore: PokemonCache {
         let speciesIDs = chain.speciesIDs
         do {
             let payload = try JSONEncoder().encode(chain)
-            let existing = try modelContext.fetch(FetchDescriptor<EvolutionChainRecord>(predicate: #Predicate { $0.id == chainID }))
+            let existing = try modelContext.fetch(
+                FetchDescriptor<EvolutionChainRecord>(predicate: #Predicate { $0.id == chainID }))
             if let record = existing.first {
                 record.payload = payload
             } else {
                 modelContext.insert(EvolutionChainRecord(id: chainID, payload: payload))
             }
 
-            let links = try modelContext.fetch(FetchDescriptor<EvolutionLinkRecord>(predicate: #Predicate { speciesIDs.contains($0.speciesID) }))
+            let links = try modelContext.fetch(
+                FetchDescriptor<EvolutionLinkRecord>(predicate: #Predicate { speciesIDs.contains($0.speciesID) }))
             let linksBySpecies = Dictionary(uniqueKeysWithValues: links.map { ($0.speciesID, $0) })
             for speciesID in speciesIDs {
                 if let link = linksBySpecies[speciesID] {
@@ -244,7 +251,8 @@ extension SwiftDataPokemonStore: TeamRepository {
             if try record(id: pokemon.id)?.teamAddedAt != nil { return .success(()) }
 
             // Counted inside the actor, so two quick adds can't push the team past the limit.
-            let members = try modelContext.fetchCount(FetchDescriptor<PokemonRecord>(predicate: #Predicate { $0.teamAddedAt != nil }))
+            let members = try modelContext.fetchCount(
+                FetchDescriptor<PokemonRecord>(predicate: #Predicate { $0.teamAddedAt != nil }))
             guard members < TeamAnalysis.maxTeamSize else { return .failure(.teamFull) }
 
             try upsert([pokemon])[pokemon.id]?.teamAddedAt = .now

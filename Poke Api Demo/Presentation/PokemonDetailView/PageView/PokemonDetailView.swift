@@ -31,7 +31,7 @@ struct PokemonDetailView: View {
                         state: viewModel.evolution,
                         selectedID: viewModel.selectedEvolutionID,
                         currentID: viewModel.pokemonId,
-                        color: pokemon.primaryType.color,
+                        type: pokemon.primaryType,
                         onSelect: { id in
                             tapFeedback += 1
                             viewModel.selectEvolution(id)
@@ -50,9 +50,12 @@ struct PokemonDetailView: View {
                     tapFeedback += 1
                     Task { await viewModel.toggleTeam() }
                 } label: {
-                    Image(systemName: viewModel.isOnTeam ? "person.crop.circle.badge.checkmark" : "person.crop.circle.badge.plus")
+                    Image(
+                        systemName: viewModel.isOnTeam
+                            ? "person.crop.circle.badge.checkmark" : "person.crop.circle.badge.plus")
                 }
                 .accessibilityLabel(viewModel.isOnTeam ? "Remove from team" : "Add to team")
+                .accessibilityIdentifier("team-toggle")
 
                 Button {
                     tapFeedback += 1
@@ -61,6 +64,7 @@ struct PokemonDetailView: View {
                     Image(systemName: viewModel.isFavorite ? "heart.fill" : "heart")
                 }
                 .accessibilityLabel(viewModel.isFavorite ? "Remove from favorites" : "Add to favorites")
+                .accessibilityIdentifier("favorite-toggle")
             }
         }
         .sensoryFeedback(.selection, trigger: tapFeedback)
@@ -94,6 +98,7 @@ struct PokemonDetailView: View {
     }
 }
 
+#if DEBUG
 #Preview {
     NavigationStack {
         PokemonDetailView(
@@ -106,3 +111,4 @@ struct PokemonDetailView: View {
         )
     }
 }
+#endif

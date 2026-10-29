@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+
 @testable import Poke_Api_Demo
 
 struct PokemonRemoteSourceTests {
@@ -61,7 +62,8 @@ struct PokemonRemoteSourceTests {
 
     @Test func getPokemonsKeepsApiOrderAndComputesNextOffset() async throws {
         let ids = [3, 1, 10001, 2]
-        let source = PokemonRemoteSource(client: Self.pagedClient(ids: ids, next: "https://pokeapi.co/api/v2/pokemon?offset=24&limit=4"))
+        let source = PokemonRemoteSource(
+            client: Self.pagedClient(ids: ids, next: "https://pokeapi.co/api/v2/pokemon?offset=24&limit=4"))
 
         let page = try await source.getPokemons(offset: 20, limit: 4).get()
 
@@ -200,10 +202,11 @@ struct PokemonRemoteSourceTests {
 
         #expect(chain == .fixture())
         #expect(again == .fixture())
-        #expect(recorder.all.map(\.absoluteString) == [
-            "https://pokeapi.co/api/v2/pokemon-species/2",
-            "https://pokeapi.co/api/v2/evolution-chain/1/",
-        ])
+        #expect(
+            recorder.all.map(\.absoluteString) == [
+                "https://pokeapi.co/api/v2/pokemon-species/2",
+                "https://pokeapi.co/api/v2/evolution-chain/1/",
+            ])
     }
 
     @Test func alternateFormReadsItsSpeciesFirst() async throws {
@@ -234,7 +237,8 @@ struct PokemonRemoteSourceTests {
     @Test func savedChainIsUsedOffline() async throws {
         let cache = InMemoryPokemonCache()
         await cache.storeEvolutionChain(.fixture())
-        let source = PokemonRemoteSource(client: StubHTTPClient { _ in throw URLError(.notConnectedToInternet) }, cache: cache)
+        let source = PokemonRemoteSource(
+            client: StubHTTPClient { _ in throw URLError(.notConnectedToInternet) }, cache: cache)
 
         #expect(try await source.getEvolutionChain(pokemonID: 1).get() == .fixture())
     }

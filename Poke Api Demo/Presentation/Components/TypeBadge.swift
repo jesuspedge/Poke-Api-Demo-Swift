@@ -10,7 +10,7 @@ struct TypeBadge: View {
             .font(.subheadline.weight(.medium))
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
-            .foregroundStyle(isFilled ? Color.white : type.color)
+            .foregroundStyle(isFilled ? type.colorOnFill : type.color)
             .background(type.color.opacity(isFilled ? 1 : 0.15), in: .capsule)
     }
 }

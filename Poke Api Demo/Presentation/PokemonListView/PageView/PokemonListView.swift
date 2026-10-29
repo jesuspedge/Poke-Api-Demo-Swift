@@ -10,7 +10,7 @@ import SwiftUI
 struct PokemonListView: View {
     @State private var viewModel: PokemonListViewModel
     @Namespace private var zoom
-    
+
     init(viewModel: PokemonListViewModel) {
         _viewModel = State(initialValue: viewModel)
     }
@@ -73,8 +73,10 @@ struct PokemonListView: View {
     }
 }
 
+#if DEBUG
 #Preview {
     PokemonListView(
         viewModel: PokemonListViewModel(repository: MockPokemonRepository(), pageSize: 2)
     )
 }
+#endif

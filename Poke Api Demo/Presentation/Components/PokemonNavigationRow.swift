@@ -15,6 +15,8 @@ struct PokemonNavigationRow: View {
             }
             .opacity(0)
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("pokemon-card-\(pokemon.id)")
         .listRowSeparator(.hidden)
     }
 }

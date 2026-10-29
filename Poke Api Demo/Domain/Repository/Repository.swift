@@ -6,10 +6,10 @@
 //
 
 protocol PokemonRepository: Sendable {
-    
+
     // getPokemonPage
     func getPokemons(offset: Int, limit: Int) async -> Result<PokemonPage, AppError>
-    
+
     // getPokemonsByIds
     func getPokemons(ids: [Int]) async -> Result<[PokemonEntity], AppError>
 

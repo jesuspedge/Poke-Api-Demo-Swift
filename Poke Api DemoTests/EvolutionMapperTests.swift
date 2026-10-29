@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+
 @testable import Poke_Api_Demo
 
 struct EvolutionMapperTests {
@@ -14,15 +15,24 @@ struct EvolutionMapperTests {
 
         #expect(chain == .fixture())
         #expect(chain.root.method == nil)
-        #expect(chain.root.artworkURL?.absoluteString ==
-            "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/1.png")
+        #expect(
+            chain.root.artworkURL?.absoluteString
+                == "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/1.png"
+        )
     }
 
     @Test func branchingChainMapsEachBranchsMethod() throws {
-        let data = PokemonJSON.evolutionChain(id: 67, chain: PokemonJSON.chainLink(id: 133, name: "eevee", evolvesTo: [
-            PokemonJSON.chainLink(id: 134, name: "vaporeon", details: [PokemonJSON.detail(trigger: "use-item", item: "water-stone")]),
-            PokemonJSON.chainLink(id: 196, name: "espeon", details: [PokemonJSON.detail(trigger: "level-up", minHappiness: 160)]),
-        ]))
+        let data = PokemonJSON.evolutionChain(
+            id: 67,
+            chain: PokemonJSON.chainLink(
+                id: 133, name: "eevee",
+                evolvesTo: [
+                    PokemonJSON.chainLink(
+                        id: 134, name: "vaporeon",
+                        details: [PokemonJSON.detail(trigger: "use-item", item: "water-stone")]),
+                    PokemonJSON.chainLink(
+                        id: 196, name: "espeon", details: [PokemonJSON.detail(trigger: "level-up", minHappiness: 160)]),
+                ]))
 
         let chain = try map(data)
 
@@ -39,20 +49,30 @@ struct EvolutionMapperTests {
         (PokemonJSON.detail(trigger: "level-up", minLevel: 20, minHappiness: 220), .level(20)),
     ])
     func triggersMapToMethods(detail: String, expected: EvolutionMethod) throws {
-        let data = PokemonJSON.evolutionChain(id: 46, chain: PokemonJSON.chainLink(id: 95, name: "onix", evolvesTo: [
-            PokemonJSON.chainLink(id: 208, name: "steelix", details: [detail]),
-        ]))
+        let data = PokemonJSON.evolutionChain(
+            id: 46,
+            chain: PokemonJSON.chainLink(
+                id: 95, name: "onix",
+                evolvesTo: [
+                    PokemonJSON.chainLink(id: 208, name: "steelix", details: [detail])
+                ]))
 
         #expect(try map(data).stages[1].first?.method == expected)
     }
 
     @Test func specificMethodIsPreferredOverAGenericOne() throws {
-        let data = PokemonJSON.evolutionChain(id: 67, chain: PokemonJSON.chainLink(id: 133, name: "eevee", evolvesTo: [
-            PokemonJSON.chainLink(id: 470, name: "leafeon", details: [
-                PokemonJSON.detail(trigger: "level-up"),
-                PokemonJSON.detail(trigger: "use-item", item: "leaf-stone"),
-            ]),
-        ]))
+        let data = PokemonJSON.evolutionChain(
+            id: 67,
+            chain: PokemonJSON.chainLink(
+                id: 133, name: "eevee",
+                evolvesTo: [
+                    PokemonJSON.chainLink(
+                        id: 470, name: "leafeon",
+                        details: [
+                            PokemonJSON.detail(trigger: "level-up"),
+                            PokemonJSON.detail(trigger: "use-item", item: "leaf-stone"),
+                        ])
+                ]))
 
         #expect(try map(data).stages[1].first?.method == .item("leaf-stone"))
     }

@@ -178,7 +178,7 @@ struct PokemonRemoteSource: PokemonRepository {
         var components = URLComponents(string: "\(apiRoot)/pokemon")
         components?.queryItems = [
             URLQueryItem(name: "limit", value: String(limit)),
-            URLQueryItem(name: "offset", value: String(offset))
+            URLQueryItem(name: "offset", value: String(offset)),
         ]
         guard let url = components?.url else {
             throw AppError.invalidURL
@@ -190,7 +190,8 @@ struct PokemonRemoteSource: PokemonRepository {
         let (data, response) = try await client.data(from: url)
 
         if let httpResponse = response as? HTTPURLResponse,
-           !(200..<300).contains(httpResponse.statusCode) {
+            !(200..<300).contains(httpResponse.statusCode)
+        {
             throw AppError.httpStatus(httpResponse.statusCode)
         }
 

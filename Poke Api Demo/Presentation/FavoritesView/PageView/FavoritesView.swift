@@ -64,8 +64,10 @@ struct FavoritesView: View {
     }
 }
 
+#if DEBUG
 #Preview {
     FavoritesView(
         viewModel: FavoritesViewModel(favorites: MockFavoritesRepository(seedIDs: [4, 1]))
     )
 }
+#endif

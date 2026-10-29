@@ -39,6 +39,17 @@
                ReferencedContainer = "container:Poke Api Demo.xcodeproj">
             </BuildableReference>
          </TestableReference>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "E9A1B2C3D4E5F6A7B8C90013"
+               BuildableName = "Poke Api DemoUITests.xctest"
+               BlueprintName = "Poke Api DemoUITests"
+               ReferencedContainer = "container:Poke Api Demo.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction

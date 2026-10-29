@@ -3,7 +3,10 @@ import Foundation
 struct EvolutionMapper {
     // The same official-artwork URL the /pokemon endpoint returns, so members need no extra request.
     static func artworkURL(forSpeciesID id: Int) -> URL? {
-        URL(string: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/\(id).png")
+        URL(
+            string:
+                "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/\(id).png"
+        )
     }
 
     func toEvolutionChain(_ model: EvolutionChainModel) -> EvolutionChain {

@@ -25,61 +25,77 @@ enum TypeChart {
         case .normal:
             Matchups(notVeryEffective: [.rock, .steel], noEffect: [.ghost])
         case .fire:
-            Matchups(superEffective: [.grass, .ice, .bug, .steel],
-                     notVeryEffective: [.fire, .water, .rock, .dragon])
+            Matchups(
+                superEffective: [.grass, .ice, .bug, .steel],
+                notVeryEffective: [.fire, .water, .rock, .dragon])
         case .water:
-            Matchups(superEffective: [.fire, .ground, .rock],
-                     notVeryEffective: [.water, .grass, .dragon])
+            Matchups(
+                superEffective: [.fire, .ground, .rock],
+                notVeryEffective: [.water, .grass, .dragon])
         case .electric:
-            Matchups(superEffective: [.water, .flying],
-                     notVeryEffective: [.electric, .grass, .dragon],
-                     noEffect: [.ground])
+            Matchups(
+                superEffective: [.water, .flying],
+                notVeryEffective: [.electric, .grass, .dragon],
+                noEffect: [.ground])
         case .grass:
-            Matchups(superEffective: [.water, .ground, .rock],
-                     notVeryEffective: [.fire, .grass, .poison, .flying, .bug, .dragon, .steel])
+            Matchups(
+                superEffective: [.water, .ground, .rock],
+                notVeryEffective: [.fire, .grass, .poison, .flying, .bug, .dragon, .steel])
         case .ice:
-            Matchups(superEffective: [.grass, .ground, .flying, .dragon],
-                     notVeryEffective: [.fire, .water, .ice, .steel])
+            Matchups(
+                superEffective: [.grass, .ground, .flying, .dragon],
+                notVeryEffective: [.fire, .water, .ice, .steel])
         case .fighting:
-            Matchups(superEffective: [.normal, .ice, .rock, .dark, .steel],
-                     notVeryEffective: [.poison, .flying, .psychic, .bug, .fairy],
-                     noEffect: [.ghost])
+            Matchups(
+                superEffective: [.normal, .ice, .rock, .dark, .steel],
+                notVeryEffective: [.poison, .flying, .psychic, .bug, .fairy],
+                noEffect: [.ghost])
         case .poison:
-            Matchups(superEffective: [.grass, .fairy],
-                     notVeryEffective: [.poison, .ground, .rock, .ghost],
-                     noEffect: [.steel])
+            Matchups(
+                superEffective: [.grass, .fairy],
+                notVeryEffective: [.poison, .ground, .rock, .ghost],
+                noEffect: [.steel])
         case .ground:
-            Matchups(superEffective: [.fire, .electric, .poison, .rock, .steel],
-                     notVeryEffective: [.grass, .bug],
-                     noEffect: [.flying])
+            Matchups(
+                superEffective: [.fire, .electric, .poison, .rock, .steel],
+                notVeryEffective: [.grass, .bug],
+                noEffect: [.flying])
         case .flying:
-            Matchups(superEffective: [.grass, .fighting, .bug],
-                     notVeryEffective: [.electric, .rock, .steel])
+            Matchups(
+                superEffective: [.grass, .fighting, .bug],
+                notVeryEffective: [.electric, .rock, .steel])
         case .psychic:
-            Matchups(superEffective: [.fighting, .poison],
-                     notVeryEffective: [.psychic, .steel],
-                     noEffect: [.dark])
+            Matchups(
+                superEffective: [.fighting, .poison],
+                notVeryEffective: [.psychic, .steel],
+                noEffect: [.dark])
         case .bug:
-            Matchups(superEffective: [.grass, .psychic, .dark],
-                     notVeryEffective: [.fire, .fighting, .poison, .flying, .ghost, .steel, .fairy])
+            Matchups(
+                superEffective: [.grass, .psychic, .dark],
+                notVeryEffective: [.fire, .fighting, .poison, .flying, .ghost, .steel, .fairy])
         case .rock:
-            Matchups(superEffective: [.fire, .ice, .flying, .bug],
-                     notVeryEffective: [.fighting, .ground, .steel])
+            Matchups(
+                superEffective: [.fire, .ice, .flying, .bug],
+                notVeryEffective: [.fighting, .ground, .steel])
         case .ghost:
-            Matchups(superEffective: [.psychic, .ghost],
-                     notVeryEffective: [.dark],
-                     noEffect: [.normal])
+            Matchups(
+                superEffective: [.psychic, .ghost],
+                notVeryEffective: [.dark],
+                noEffect: [.normal])
         case .dragon:
             Matchups(superEffective: [.dragon], notVeryEffective: [.steel], noEffect: [.fairy])
         case .dark:
-            Matchups(superEffective: [.psychic, .ghost],
-                     notVeryEffective: [.fighting, .dark, .fairy])
+            Matchups(
+                superEffective: [.psychic, .ghost],
+                notVeryEffective: [.fighting, .dark, .fairy])
         case .steel:
-            Matchups(superEffective: [.ice, .rock, .fairy],
-                     notVeryEffective: [.fire, .water, .electric, .steel])
+            Matchups(
+                superEffective: [.ice, .rock, .fairy],
+                notVeryEffective: [.fire, .water, .electric, .steel])
         case .fairy:
-            Matchups(superEffective: [.fighting, .dragon, .dark],
-                     notVeryEffective: [.fire, .poison, .steel])
+            Matchups(
+                superEffective: [.fighting, .dragon, .dark],
+                notVeryEffective: [.fire, .poison, .steel])
         }
     }
 }

@@ -1,5 +1,6 @@
 import Foundation
 import os
+
 @testable import Poke_Api_Demo
 
 struct StubHTTPClient: HTTPClient {
@@ -229,7 +230,9 @@ extension PokemonPage {
 }
 
 extension PokemonEntity {
-    static func fixture(id: Int = 1, name: String = "bulbasaur", types: [PokemonType] = [.grass, .poison]) -> PokemonEntity {
+    static func fixture(id: Int = 1, name: String = "bulbasaur", types: [PokemonType] = [.grass, .poison])
+        -> PokemonEntity
+    {
         PokemonEntity(
             id: id,
             name: name,
@@ -244,7 +247,9 @@ extension PokemonEntity {
 }
 
 extension EvolutionNode {
-    static func fixture(id: Int, name: String, method: EvolutionMethod? = nil, evolvesTo: [EvolutionNode] = []) -> EvolutionNode {
+    static func fixture(id: Int, name: String, method: EvolutionMethod? = nil, evolvesTo: [EvolutionNode] = [])
+        -> EvolutionNode
+    {
         EvolutionNode(
             species: PokemonSummary(id: id, name: name),
             artworkURL: EvolutionMapper.artworkURL(forSpeciesID: id),
@@ -272,22 +277,23 @@ enum PokemonJSON {
     ) -> Data {
         let typesJSON = types.map { "{\"type\": {\"name\": \"\($0)\"}}" }.joined(separator: ",")
         let json = """
-        {
-          "id": \(id),
-          "name": "\(name)",
-          "abilities": [{"ability": {"name": "overgrow"}}, {"ability": {"name": "chlorophyll"}}],
-          "height": 7,
-          "weight": 69,
-          "sprites": {"other": {"official-artwork": {"front_default": \(artwork ?? "null")}}},
-          "stats": [{"base_stat": 45, "stat": {"name": "hp"}}, {"base_stat": 49, "stat": {"name": "attack"}}],
-          "types": [\(typesJSON)]
-        }
-        """
+            {
+              "id": \(id),
+              "name": "\(name)",
+              "abilities": [{"ability": {"name": "overgrow"}}, {"ability": {"name": "chlorophyll"}}],
+              "height": 7,
+              "weight": 69,
+              "sprites": {"other": {"official-artwork": {"front_default": \(artwork ?? "null")}}},
+              "stats": [{"base_stat": 45, "stat": {"name": "hp"}}, {"base_stat": 49, "stat": {"name": "attack"}}],
+              "types": [\(typesJSON)]
+            }
+            """
         return Data(json.utf8)
     }
 
     static func page(ids: [Int], next: String? = nil) -> Data {
-        let results = ids
+        let results =
+            ids
             .map { "{\"name\": \"pokemon-\($0)\", \"url\": \"https://pokeapi.co/api/v2/pokemon/\($0)/\"}" }
             .joined(separator: ",")
         let nextJSON = next.map { "\"\($0)\"" } ?? "null"
@@ -295,8 +301,11 @@ enum PokemonJSON {
     }
 
     static func typeDetail(ids: [Int]) -> Data {
-        let pokemon = ids
-            .map { "{\"slot\": 1, \"pokemon\": {\"name\": \"pokemon-\($0)\", \"url\": \"https://pokeapi.co/api/v2/pokemon/\($0)/\"}}" }
+        let pokemon =
+            ids
+            .map {
+                "{\"slot\": 1, \"pokemon\": {\"name\": \"pokemon-\($0)\", \"url\": \"https://pokeapi.co/api/v2/pokemon/\($0)/\"}}"
+            }
             .joined(separator: ",")
         return Data("{\"id\": 10, \"name\": \"fire\", \"pokemon\": [\(pokemon)]}".utf8)
     }
@@ -316,7 +325,9 @@ enum PokemonJSON {
 
     // /pokemon/{id} trimmed to the species link
     static func speciesLink(speciesID: Int, name: String) -> Data {
-        Data("{\"species\": {\"name\": \"\(name)\", \"url\": \"https://pokeapi.co/api/v2/pokemon-species/\(speciesID)/\"}}".utf8)
+        Data(
+            "{\"species\": {\"name\": \"\(name)\", \"url\": \"https://pokeapi.co/api/v2/pokemon-species/\(speciesID)/\"}}"
+                .utf8)
     }
 
     static func evolutionChain(id: Int, chain: String) -> Data {
@@ -343,21 +354,27 @@ enum PokemonJSON {
             name.map { "{\"name\": \"\($0)\", \"url\": \"https://pokeapi.co/api/v2/\(kind)/1/\"}" } ?? "null"
         }
         return """
-        {"trigger": \(resource(trigger, "evolution-trigger")),
-         "min_level": \(minLevel.map(String.init) ?? "null"),
-         "item": \(resource(item, "item")),
-         "held_item": \(resource(heldItem, "item")),
-         "min_happiness": \(minHappiness.map(String.init) ?? "null"),
-         "time_of_day": ""}
-        """
+            {"trigger": \(resource(trigger, "evolution-trigger")),
+             "min_level": \(minLevel.map(String.init) ?? "null"),
+             "item": \(resource(item, "item")),
+             "held_item": \(resource(heldItem, "item")),
+             "min_happiness": \(minHappiness.map(String.init) ?? "null"),
+             "time_of_day": ""}
+            """
     }
 
     // Bulbasaur -> Ivysaur (Lv. 16) -> Venusaur (Lv. 32), chain 1
     static func bulbasaurChain() -> Data {
-        evolutionChain(id: 1, chain: chainLink(id: 1, name: "bulbasaur", evolvesTo: [
-            chainLink(id: 2, name: "ivysaur", details: [detail(trigger: "level-up", minLevel: 16)], evolvesTo: [
-                chainLink(id: 3, name: "venusaur", details: [detail(trigger: "level-up", minLevel: 32)]),
-            ]),
-        ]))
+        evolutionChain(
+            id: 1,
+            chain: chainLink(
+                id: 1, name: "bulbasaur",
+                evolvesTo: [
+                    chainLink(
+                        id: 2, name: "ivysaur", details: [detail(trigger: "level-up", minLevel: 16)],
+                        evolvesTo: [
+                            chainLink(id: 3, name: "venusaur", details: [detail(trigger: "level-up", minLevel: 32)])
+                        ])
+                ]))
     }
 }

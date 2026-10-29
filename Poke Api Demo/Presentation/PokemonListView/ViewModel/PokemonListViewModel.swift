@@ -104,8 +104,9 @@ final class PokemonListViewModel {
 
     func loadNextPage() async {
         guard case .success = state,
-              let offset = nextOffset,
-              paging != .loading else { return }
+            let offset = nextOffset,
+            paging != .loading
+        else { return }
 
         let currentGeneration = generation
         paging = .loading

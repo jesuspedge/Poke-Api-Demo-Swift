@@ -6,8 +6,8 @@
 //
 
 import Foundation
-import os
 import SwiftData
+import os
 
 // MARK: - Composition Root Factory
 enum AppFactory {
@@ -16,7 +16,7 @@ enum AppFactory {
     private static let store = SwiftDataPokemonStore(modelContainer: makeContainer())
 
     // Single shared repository
-    private static let repository: PokemonRepository = PokemonRemoteSource(cache: store)
+    private static let repository: PokemonRepository = makeRepository()
     private static let favorites: FavoritesRepository = store
     private static let team: TeamRepository = store
 
@@ -53,8 +53,21 @@ enum AppFactory {
         )
     }
 
+    private static func makeRepository() -> PokemonRepository {
+        #if DEBUG
+        if LaunchMode.current == .uiTesting { return MockPokemonRepository() }
+        #endif
+        return PokemonRemoteSource(cache: store)
+    }
+
     // Falls back to an in-memory store so the app still runs if the on-disk store can't be opened.
     private static func makeContainer() -> ModelContainer {
+        #if DEBUG
+        if LaunchMode.current != .standard, let container = try? SwiftDataPokemonStore.makeContainer(inMemory: true) {
+            return container
+        }
+        #endif
+
         do {
             return try SwiftDataPokemonStore.makeContainer()
         } catch {
@@ -69,3 +82,22 @@ enum AppFactory {
         }
     }
 }
+
+#if DEBUG
+// Set by the UI tests through launch arguments. Both test modes start from an empty in-memory store,
+// so the saved favorites and team are never touched.
+enum LaunchMode {
+    case standard
+    // The bundled fixtures, with no network.
+    case uiTesting
+    // Live data, for recording the README demo.
+    case demoTour
+
+    static let current: LaunchMode = {
+        let arguments = ProcessInfo.processInfo.arguments
+        if arguments.contains("-ui-testing") { return .uiTesting }
+        if arguments.contains("-demo-tour") { return .demoTour }
+        return .standard
+    }()
+}
+#endif

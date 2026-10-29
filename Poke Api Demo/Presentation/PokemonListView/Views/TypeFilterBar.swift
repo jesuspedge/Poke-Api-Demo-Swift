@@ -32,6 +32,7 @@ private struct TypeChip: View {
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .accessibilityIdentifier("type-chip-\(type.rawValue)")
     }
 }
 

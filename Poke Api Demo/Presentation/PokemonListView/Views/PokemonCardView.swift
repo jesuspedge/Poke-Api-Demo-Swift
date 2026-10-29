@@ -5,8 +5,8 @@
 //  Created by Roger Bacab on 05/03/26.
 //
 
-import SwiftUI
 import SDWebImageSwiftUI
+import SwiftUI
 
 struct PokemonCard: View {
     let pokemon: PokemonEntity

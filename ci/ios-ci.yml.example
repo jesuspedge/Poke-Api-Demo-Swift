@@ -1,0 +1,73 @@
+# GitHub Actions workflow for this project, kept outside .github/ so it never runs.
+# To enable it: mkdir -p .github/workflows && git mv ci/ios-ci.yml.example .github/workflows/ci.yml
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint (swift-format)
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+      - name: swift-format lint
+        run: scripts/lint.sh
+
+  test:
+    name: Build and test
+    runs-on: macos-26
+    timeout-minutes: 30
+    env:
+      PROJECT: Poke Api Demo.xcodeproj
+      SCHEME: Poke Api Demo
+      DESTINATION: platform=iOS Simulator,name=iPhone 17 Pro
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Cache Swift packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Caches/org.swift.swiftpm
+            SourcePackages
+          key: spm-${{ hashFiles('**/Package.resolved') }}
+
+      - name: Unit and UI tests
+        run: |
+          xcodebuild test \
+            -project "$PROJECT" \
+            -scheme "$SCHEME" \
+            -destination "$DESTINATION" \
+            -clonedSourcePackagesDirPath SourcePackages \
+            -resultBundlePath TestResults.xcresult \
+            CODE_SIGNING_ALLOWED=NO
+
+      # Proves the preview-only mocks stay out of release builds.
+      - name: Release build
+        run: |
+          xcodebuild build \
+            -project "$PROJECT" \
+            -scheme "$SCHEME" \
+            -configuration Release \
+            -destination "generic/platform=iOS Simulator" \
+            -clonedSourcePackagesDirPath SourcePackages \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TestResults
+          path: TestResults.xcresult

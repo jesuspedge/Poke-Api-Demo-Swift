@@ -1,11 +1,12 @@
 import Foundation
 import Testing
+
 @testable import Poke_Api_Demo
 
 struct PokemonPageModelTests {
     @Test(arguments: [
         ("https://pokeapi.co/api/v2/pokemon/25/", 25),
-        ("https://pokeapi.co/api/v2/pokemon/10001", 10001)
+        ("https://pokeapi.co/api/v2/pokemon/10001", 10001),
     ])
     func idIsParsedFromResourceURL(url: String, expectedID: Int) {
         #expect(NamedResourceModel(name: "pokemon", url: url).id == expectedID)

@@ -63,10 +63,11 @@ struct MockPokemonRepository: PokemonRepository {
 
     private func loadFixtures(ids: [Int]) -> Result<[PokemonEntity], AppError> {
         do {
-            return .success(try ids.map {
-                let model = try Bundle.main.decode(PokemonModel.self, from: "pokemon_\($0)")
-                return mapper.toPokemonEntity(model)
-            })
+            return .success(
+                try ids.map {
+                    let model = try Bundle.main.decode(PokemonModel.self, from: "pokemon_\($0)")
+                    return mapper.toPokemonEntity(model)
+                })
         } catch let error as AppError {
             return .failure(error)
         } catch {

@@ -81,6 +81,7 @@ struct TeamPickerView: View {
     }
 }
 
+#if DEBUG
 #Preview {
     let repository = MockPokemonRepository()
     TeamPickerView(
@@ -92,3 +93,4 @@ struct TeamPickerView: View {
         )
     )
 }
+#endif

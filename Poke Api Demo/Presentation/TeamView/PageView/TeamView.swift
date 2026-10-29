@@ -90,7 +90,9 @@ struct TeamView: View {
                     Text("Defense")
                 } footer: {
                     if !analysis.sharedWeaknesses.isEmpty {
-                        Text("Shared weaknesses: \(analysis.sharedWeaknesses.map(\.displayName).formatted(.list(type: .and))).")
+                        Text(
+                            "Shared weaknesses: \(analysis.sharedWeaknesses.map(\.displayName).formatted(.list(type: .and)))."
+                        )
                     }
                 }
 
@@ -103,6 +105,8 @@ struct TeamView: View {
     }
 }
 
+#if DEBUG
 #Preview {
     TeamView(viewModel: TeamViewModel(team: MockTeamRepository(seedIDs: [1, 4])))
 }
+#endif

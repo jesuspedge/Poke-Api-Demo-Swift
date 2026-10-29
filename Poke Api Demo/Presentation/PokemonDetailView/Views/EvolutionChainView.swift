@@ -1,12 +1,12 @@
-import SwiftUI
 import SDWebImageSwiftUI
+import SwiftUI
 
 struct EvolutionChainView: View {
     let state: EvolutionState
     let selectedID: Int?
     // The Pokémon this detail screen shows; selecting it again offers no "View" button.
     let currentID: Int
-    let color: Color
+    let type: PokemonType
     let onSelect: (Int) -> Void
     let onRetry: () async -> Void
 
@@ -17,7 +17,7 @@ struct EvolutionChainView: View {
             Text("Evolution")
                 .font(.title3)
                 .bold()
-                .foregroundStyle(color)
+                .foregroundStyle(type.color)
 
             switch state {
             case .loading:
@@ -106,25 +106,29 @@ struct EvolutionChainView: View {
                 // The highlight slides from the old selection to the new one.
                 if isSelected {
                     RoundedRectangle(cornerRadius: 12)
-                        .fill(color.opacity(0.18))
+                        .fill(type.color.opacity(0.18))
                         .matchedGeometryEffect(id: "selection", in: selection)
                 }
             }
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .accessibilityIdentifier("evolution-member-\(node.species.id)")
     }
 
     @ViewBuilder
     private func viewButton(_ chain: EvolutionChain) -> some View {
         if let selectedID, selectedID != currentID,
-           let node = chain.stages.joined().first(where: { $0.species.id == selectedID }) {
+            let node = chain.stages.joined().first(where: { $0.species.id == selectedID })
+        {
             NavigationLink(value: EvolutionLink(id: selectedID)) {
                 Label("View \(node.species.name.capitalized)", systemImage: "arrow.right.circle.fill")
                     .frame(maxWidth: .infinity)
+                    .foregroundStyle(type.colorOnFill)
             }
             .buttonStyle(.borderedProminent)
-            .tint(color)
+            .tint(type.color)
+            .accessibilityIdentifier("evolution-view-button")
         }
     }
 }
@@ -138,12 +142,14 @@ struct EvolutionChainView: View {
             artworkURL: EvolutionMapper.artworkURL(forSpeciesID: 133),
             method: nil,
             evolvesTo: [
-                EvolutionNode(species: PokemonSummary(id: 134, name: "vaporeon"),
-                              artworkURL: EvolutionMapper.artworkURL(forSpeciesID: 134),
-                              method: .item("water-stone"), evolvesTo: []),
-                EvolutionNode(species: PokemonSummary(id: 196, name: "espeon"),
-                              artworkURL: EvolutionMapper.artworkURL(forSpeciesID: 196),
-                              method: .friendship, evolvesTo: []),
+                EvolutionNode(
+                    species: PokemonSummary(id: 134, name: "vaporeon"),
+                    artworkURL: EvolutionMapper.artworkURL(forSpeciesID: 134),
+                    method: .item("water-stone"), evolvesTo: []),
+                EvolutionNode(
+                    species: PokemonSummary(id: 196, name: "espeon"),
+                    artworkURL: EvolutionMapper.artworkURL(forSpeciesID: 196),
+                    method: .friendship, evolvesTo: []),
             ]
         )
     )
@@ -152,7 +158,7 @@ struct EvolutionChainView: View {
             state: .loaded(chain),
             selectedID: selectedID,
             currentID: 133,
-            color: .brown,
+            type: .normal,
             onSelect: { selectedID = $0 },
             onRetry: {}
         )

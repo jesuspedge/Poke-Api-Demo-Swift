@@ -1,4 +1,5 @@
 import Testing
+
 @testable import Poke_Api_Demo
 
 @MainActor
@@ -33,7 +34,8 @@ struct PokemonDetailViewModelTests {
 
     @Test func loadIfNeededOnlyFetchesOnce() async {
         let repository = StubPokemonRepository()
-        let viewModel = PokemonDetailViewModel(pokemonId: 1, repository: repository, favorites: StubFavoritesRepository(), team: StubTeamRepository())
+        let viewModel = PokemonDetailViewModel(
+            pokemonId: 1, repository: repository, favorites: StubFavoritesRepository(), team: StubTeamRepository())
 
         await viewModel.loadIfNeeded()
         await viewModel.loadIfNeeded()
@@ -43,7 +45,8 @@ struct PokemonDetailViewModelTests {
 
     @Test func reloadRecoversAfterError() async {
         let repository = StubPokemonRepository(detailResult: .failure(.unknown))
-        let viewModel = PokemonDetailViewModel(pokemonId: 1, repository: repository, favorites: StubFavoritesRepository(), team: StubTeamRepository())
+        let viewModel = PokemonDetailViewModel(
+            pokemonId: 1, repository: repository, favorites: StubFavoritesRepository(), team: StubTeamRepository())
         await viewModel.loadIfNeeded()
 
         repository.setDetailResult(.success(.fixture()))
@@ -55,7 +58,8 @@ struct PokemonDetailViewModelTests {
     // MARK: - Favorites
     @Test func loadsFavoriteStatus() async {
         let favorites = StubFavoritesRepository(favorites: [.fixture(id: 1)])
-        let viewModel = PokemonDetailViewModel(pokemonId: 1, repository: StubPokemonRepository(), favorites: favorites, team: StubTeamRepository())
+        let viewModel = PokemonDetailViewModel(
+            pokemonId: 1, repository: StubPokemonRepository(), favorites: favorites, team: StubTeamRepository())
 
         await viewModel.loadIfNeeded()
 
@@ -64,7 +68,8 @@ struct PokemonDetailViewModelTests {
 
     @Test func toggleFavoritePersistsBothWays() async {
         let favorites = StubFavoritesRepository()
-        let viewModel = PokemonDetailViewModel(pokemonId: 1, repository: StubPokemonRepository(), favorites: favorites, team: StubTeamRepository())
+        let viewModel = PokemonDetailViewModel(
+            pokemonId: 1, repository: StubPokemonRepository(), favorites: favorites, team: StubTeamRepository())
         await viewModel.loadIfNeeded()
 
         await viewModel.toggleFavorite()
@@ -80,7 +85,8 @@ struct PokemonDetailViewModelTests {
         let favorites = StubFavoritesRepository()
         let error = AppError.persistence("disk full")
         favorites.setSaveError(error)
-        let viewModel = PokemonDetailViewModel(pokemonId: 1, repository: StubPokemonRepository(), favorites: favorites, team: StubTeamRepository())
+        let viewModel = PokemonDetailViewModel(
+            pokemonId: 1, repository: StubPokemonRepository(), favorites: favorites, team: StubTeamRepository())
         await viewModel.loadIfNeeded()
 
         await viewModel.toggleFavorite()
@@ -91,7 +97,8 @@ struct PokemonDetailViewModelTests {
 
     @Test func toggleFavoriteIsNoOpBeforeLoad() async {
         let favorites = StubFavoritesRepository()
-        let viewModel = PokemonDetailViewModel(pokemonId: 1, repository: StubPokemonRepository(), favorites: favorites, team: StubTeamRepository())
+        let viewModel = PokemonDetailViewModel(
+            pokemonId: 1, repository: StubPokemonRepository(), favorites: favorites, team: StubTeamRepository())
 
         await viewModel.toggleFavorite()
 
@@ -101,7 +108,8 @@ struct PokemonDetailViewModelTests {
 
     // MARK: - Team
     private func makeViewModel(team: StubTeamRepository) -> PokemonDetailViewModel {
-        PokemonDetailViewModel(pokemonId: 1, repository: StubPokemonRepository(), favorites: StubFavoritesRepository(), team: team)
+        PokemonDetailViewModel(
+            pokemonId: 1, repository: StubPokemonRepository(), favorites: StubFavoritesRepository(), team: team)
     }
 
     @Test func loadsTeamStatus() async {
@@ -165,7 +173,8 @@ struct PokemonDetailViewModelTests {
 
     @Test func failedEvolutionKeepsDetailAndRetryRecovers() async {
         let repository = StubPokemonRepository(evolutionResult: .failure(.networkError("offline")))
-        let viewModel = PokemonDetailViewModel(pokemonId: 1, repository: repository, favorites: StubFavoritesRepository(), team: StubTeamRepository())
+        let viewModel = PokemonDetailViewModel(
+            pokemonId: 1, repository: repository, favorites: StubFavoritesRepository(), team: StubTeamRepository())
         await viewModel.loadIfNeeded()
 
         #expect(viewModel.state == .success(.fixture()))
@@ -178,7 +187,8 @@ struct PokemonDetailViewModelTests {
 
     @Test func failedDetailSkipsEvolution() async {
         let repository = StubPokemonRepository(detailResult: .failure(.unknown))
-        let viewModel = PokemonDetailViewModel(pokemonId: 1, repository: repository, favorites: StubFavoritesRepository(), team: StubTeamRepository())
+        let viewModel = PokemonDetailViewModel(
+            pokemonId: 1, repository: repository, favorites: StubFavoritesRepository(), team: StubTeamRepository())
 
         await viewModel.loadIfNeeded()
 
@@ -186,7 +196,9 @@ struct PokemonDetailViewModelTests {
     }
 
     @Test func alternateFormSelectsNothing() async {
-        let viewModel = PokemonDetailViewModel(pokemonId: 10033, repository: StubPokemonRepository(), favorites: StubFavoritesRepository(), team: StubTeamRepository())
+        let viewModel = PokemonDetailViewModel(
+            pokemonId: 10033, repository: StubPokemonRepository(), favorites: StubFavoritesRepository(),
+            team: StubTeamRepository())
 
         await viewModel.loadIfNeeded()
 

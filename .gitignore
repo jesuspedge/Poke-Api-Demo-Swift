@@ -45,3 +45,9 @@ fastlane/test_output
 
 ## macOS
 .DS_Store
+
+## Build output
+*.xcresult
+DerivedData/
+build/
+SourcePackages/
